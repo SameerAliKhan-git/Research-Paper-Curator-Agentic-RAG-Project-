@@ -141,7 +141,7 @@ Complete when you can:
 
 ```bash
 # Launch the Week 2 notebook  
-uv run jupyter notebook notebooks/week2/week2_data_ingestion.ipynb
+uv run jupyter notebook notebooks/week2/week2_arxiv_integration.ipynb
 ```
 
 ### **💻 Code Examples**
@@ -197,7 +197,7 @@ Complete when you can:
 - [ ] API endpoints work: `/papers` returns stored papers with metadata
 
 ### **📖 Deep Dive**
-**Blog Post:** [Building Data Ingestion Pipelines for RAG](https://jamwithai.substack.com/p/building-data-ingestion-pipelines-rag) - arXiv API integration and PDF processing
+**Blog Post:** [Building Data Ingestion Pipelines for RAG](https://jamwithai.substack.com/p/bringing-your-rag-system-to-life) - arXiv API integration and PDF processing
 
 ---
 
