@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/FastAPI-0.115+-green.svg" alt="FastAPI">
   <img src="https://img.shields.io/badge/OpenSearch-2.19-orange.svg" alt="OpenSearch">
   <img src="https://img.shields.io/badge/Docker-Compose-blue.svg" alt="Docker">
-  <img src="https://img.shields.io/badge/Status-Week%201%20Ready-brightgreen.svg" alt="Status">
+  <img src="https://img.shields.io/badge/Status-Week%202%20Ready-brightgreen.svg" alt="Status">
 </p>
 
 </br>
@@ -67,18 +67,11 @@ curl http://localhost:8000/health
 #### **NOTE**: Check airflow/simple_auth_manager_passwords.json.generated for Airflow username and password
 ---
 
-## 📚 Learning Materials
+## 📚 Week 1: Infrastructure Foundation ✅
 
-### **📓 Week 1: Complete Setup Guide**
-**Start here!** Follow our comprehensive setup notebook:
-Please run it in terminal
+**Start here!** Master the infrastructure that powers modern RAG systems.
 
-```bash
-# Launch the Week 1 notebook
-uv run jupyter notebook notebooks/week1/week1_setup.ipynb
-```
-
-**What you'll learn in Week 1:**
+### **🎯 Learning Objectives**
 - Complete infrastructure setup with Docker Compose
 - FastAPI development with automatic documentation and health checks
 - PostgreSQL database configuration and management
@@ -87,25 +80,142 @@ uv run jupyter notebook notebooks/week1/week1_setup.ipynb
 - Service orchestration and health monitoring
 - Professional development environment with code quality tools
 
-### **🏗️ Week 1 Infrastructure Architecture**
+### **🏗️ Architecture Overview**
 
 <p align="center">
   <img src="static/week1_infra_setup.png" alt="Week 1 Infrastructure Setup" width="800">
 </p>
 
-**Week 1 Infrastructure Components:**
+**Infrastructure Components:**
 - **FastAPI**: REST endpoints with async support (Port 8000)  
 - **PostgreSQL 16**: Paper metadata storage (Port 5432)
 - **OpenSearch 2.19**: Search engine with dashboards (Ports 9200, 5601)
 - **Apache Airflow 3.0**: Workflow orchestration (Port 8080)
 - **Ollama**: Local LLM server (Port 11434)
 
-### **📖 Week 1 Blog Post**
-[The Infrastructure That Powers RAG Systems](https://jamwithai.substack.com/p/the-infrastructure-that-powers-rag) - Detailed walkthrough and production insights.
+### **📓 Setup Guide**
+
+```bash
+# Launch the Week 1 notebook
+uv run jupyter notebook notebooks/week1/week1_setup.ipynb
+```
+
+### **✅ Success Criteria**
+Complete when you can:
+- [ ] Start all services with `docker compose up -d`
+- [ ] Access API docs at http://localhost:8000/docs  
+- [ ] Login to Airflow at http://localhost:8080
+- [ ] Browse OpenSearch at http://localhost:5601
+- [ ] All tests pass: `uv run pytest`
+
+### **📖 Deep Dive**
+**Blog Post:** [The Infrastructure That Powers RAG Systems](https://jamwithai.substack.com/p/the-infrastructure-that-powers-rag) - Detailed walkthrough and production insights
 
 ---
 
-## 🛠️ Technology Stack
+## 📚 Week 2: Data Ingestion Pipeline ✅
+
+**Building on Week 1 infrastructure:** Learn to fetch, process, and store academic papers automatically.
+
+### **🎯 Learning Objectives**
+- arXiv API integration with rate limiting and retry logic
+- Scientific PDF parsing using Docling
+- Automated data ingestion pipelines with Apache Airflow
+- Metadata extraction and storage workflows
+- Complete paper processing from API to database
+
+### **🏗️ Architecture Overview**
+
+<p align="center">
+  <img src="static/week2_data_ingestion_flow.png" alt="Week 2 Data Ingestion Architecture" width="800">
+</p>
+
+**Data Pipeline Components:**
+- **MetadataFetcher**: 🎯 Main orchestrator coordinating the entire pipeline
+- **ArxivClient**: Rate-limited paper fetching with retry logic
+- **PDFParserService**: Docling-powered scientific document processing  
+- **Airflow DAGs**: Automated daily paper ingestion workflows
+- **PostgreSQL Storage**: Structured paper metadata and content
+
+### **📓 Implementation Guide**
+
+```bash
+# Launch the Week 2 notebook  
+uv run jupyter notebook notebooks/week2/week2_data_ingestion.ipynb
+```
+
+### **💻 Code Examples**
+
+**arXiv API Integration:**
+```python
+# Example: Fetch papers with rate limiting
+from src.services.arxiv.factory import make_arxiv_client
+
+async def fetch_recent_papers():
+    client = make_arxiv_client()
+    papers = await client.search_papers(
+        query="cat:cs.AI",
+        max_results=10,
+        from_date="20240801",
+        to_date="20240807"
+    )
+    return papers
+```
+
+**PDF Processing Pipeline:**
+```python
+# Example: Parse PDF with Docling
+from src.services.pdf_parser.factory import make_pdf_parser_service
+
+async def process_paper_pdf(pdf_url: str):
+    parser = make_pdf_parser_service()
+    parsed_content = await parser.parse_pdf_from_url(pdf_url)
+    return parsed_content  # Structured content with text, tables, figures
+```
+
+**Complete Ingestion Workflow:**
+```python
+# Example: Full paper ingestion pipeline
+from src.services.metadata_fetcher import make_metadata_fetcher
+
+async def ingest_papers():
+    fetcher = make_metadata_fetcher()
+    results = await fetcher.fetch_and_store_papers(
+        query="cat:cs.AI",
+        max_results=5,
+        from_date="20240807"
+    )
+    return results  # Papers stored in database with full content
+```
+
+### **✅ Success Criteria**
+Complete when you can:
+- [ ] Fetch papers from arXiv API: Test in Week 2 notebook
+- [ ] Parse PDF content with Docling: View extracted structured content
+- [ ] Run Airflow DAG: `arxiv_paper_ingestion` executes successfully
+- [ ] Verify database storage: Papers appear in PostgreSQL with full content
+- [ ] API endpoints work: `/papers` returns stored papers with metadata
+
+### **📖 Deep Dive**
+**Blog Post:** [Building Data Ingestion Pipelines for RAG](https://jamwithai.substack.com/p/building-data-ingestion-pipelines-rag) - arXiv API integration and PDF processing
+
+---
+
+## 📚 Future Weeks: Complete RAG System
+
+**Building on Weeks 1-2 foundation:** Advanced RAG techniques and production deployment.
+
+### **Future Weeks Overview** (6-Week Course)
+- **Week 3:** OpenSearch hybrid search implementation with BM25 + semantic vectors
+- **Week 4:** Context-aware chunking and retrieval evaluation with nDCG metrics
+- **Week 5:** Full RAG pipeline with LLM integration and prompt optimization
+- **Week 6:** Observability with Langfuse, A/B testing, and production deployment
+
+---
+
+## 🔧 Reference & Development Guide
+
+### **🛠️ Technology Stack**
 
 | Service | Purpose | Status |
 |---------|---------|--------|
@@ -117,55 +227,45 @@ uv run jupyter notebook notebooks/week1/week1_setup.ipynb
 
 **Development Tools:** UV, Ruff, MyPy, Pytest, Docker Compose
 
----
-
-## 🎯 What You're Building
-
-### **Week 1: Infrastructure Foundation** ✅
-- Multi-service architecture using Docker Compose
-- REST API with health monitoring and documentation
-- Database setup with proper schema design
-- Search engine configuration for future RAG features
-- Professional development environment
-
-### **Future Weeks: Complete RAG System** (6-Week Course)
-- **Week 2:** arXiv API integration, PDF parsing with Docling, automated data ingestion
-- **Week 3:** OpenSearch hybrid search implementation with BM25 + semantic vectors
-- **Week 4:** Context-aware chunking and retrieval evaluation with nDCG metrics
-- **Week 5:** Full RAG pipeline with LLM integration and prompt optimization
-- **Week 6:** Observability with Langfuse, A/B testing, and production deployment
-
----
-
-## 🏗️ Project Structure (Week 1)
+### **🏗️ Project Structure**
 
 ```
 zero_to_RAG/
-├── src/                       # Main application code
-│   ├── main.py                # FastAPI application
-│   ├── routers/               # API endpoints
-│   ├── models/                # Database models (SQLAlchemy)
-│   ├── repositories/          # Data access layer
-│   ├── schemas/               # Pydantic validation schemas
-│   ├── services/              # Business logic
-│   ├── db/                    # Database configuration
-│   ├── config.py              # Environment configuration
-│   └── dependencies.py        # Dependency injection
+├── src/                                    # Main application code
+│   ├── main.py                             # FastAPI application
+│   ├── routers/                            # API endpoints
+│   ├── models/                             # Database models (SQLAlchemy)
+│   ├── repositories/                       # Data access layer
+│   ├── schemas/                            # Pydantic validation schemas
+│   ├── services/                           # Business logic
+│   │   ├── arxiv/                          # ✨ NEW: arXiv API client
+│   │   ├── pdf_parser/                     # ✨ NEW: Docling PDF processing
+│   │   ├── metadata_fetcher.py             # ✨ NEW: Complete ingestion pipeline
+│   │   └── ollama/                         # Ollama LLM service
+│   ├── db/                                 # Database configuration
+│   ├── config.py                           # Environment configuration
+│   └── dependencies.py                     # Dependency injection
 │
-├── notebooks/week1/           # Learning materials
-│   └── week1_setup.ipynb      # Complete setup guide
+├── notebooks/                              # Learning materials
+│   ├── week1/                              # Week 1: Infrastructure setup
+│   │   └── week1_setup.ipynb               # Complete setup guide
+│   └── week2/                              # ✨ NEW: Week 2 materials
+│       └── week2_data_ingestion.ipynb      # Data pipeline guide
 │
-├── tests/                     # Comprehensive test suite
-├── airflow/dags/              # Workflow definitions
-├── static/                    # Assets (images, GIFs)
-└── compose.yml                # Service orchestration
+├── airflow/                                # Workflow orchestration
+│   ├── dags/                               # Workflow definitions
+│   │   ├── arxiv_ingestion/                # ✨ NEW: arXiv ingestion modules
+│   │   └── arxiv_paper_ingestion.py        # ✨ NEW: Main ingestion DAG
+│   └── requirements-airflow.txt            # ✨ NEW: Airflow dependencies
+│
+├── tests/                                  # Comprehensive test suite
+├── static/                                 # Assets (images, GIFs)
+└── compose.yml                             # Service orchestration
 ```
 
----
+### **🔧 Essential Commands**
 
-## 🔧 Essential Commands
-
-### **Using the Makefile** (Recommended)
+#### **Using the Makefile** (Recommended)
 ```bash
 # View all available commands
 make help
@@ -177,7 +277,7 @@ make test          # Run tests
 make stop          # Stop services
 ```
 
-### **All Available Commands**
+#### **All Available Commands**
 | Command | Description |
 |---------|-------------|
 | `make start` | Start all services |
@@ -193,7 +293,7 @@ make stop          # Stop services
 | `make test-cov` | Run tests with coverage |
 | `make clean` | Clean up everything |
 
-### **Direct Commands** (Alternative)
+#### **Direct Commands** (Alternative)
 ```bash
 # If you prefer using commands directly
 docker compose up --build -d    # Start services
@@ -202,19 +302,7 @@ docker compose logs            # View logs
 uv run pytest                 # Run tests
 ```
 
----
-
-## 🎓 Learning Path
-
-### **Week 1 Success Criteria**
-Complete when you can:
-- [ ] Start all services with `docker compose up -d`
-- [ ] Access API docs at http://localhost:8000/docs  
-- [ ] Login to Airflow at http://localhost:8080
-- [ ] Browse OpenSearch at http://localhost:5601
-- [ ] All tests pass: `uv run pytest`
-
-### **Target Audience**
+### **🎓 Target Audience**
 | Who | Why |
 |-----|-----|
 | **AI/ML Engineers** | Learn production RAG architecture beyond tutorials |
