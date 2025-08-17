@@ -60,7 +60,7 @@ curl http://localhost:8000/health
 
 | Week | Topic | Blog Post | Code Release |
 |------|-------|-----------|--------------|
-| **Week 0** | Introduction to RAG Systems | [Why RAG Is Taking Over the World](https://jamwithai.substack.com/p/why-rag-is-taking-over-the-world) | - |
+| **Week 0** | The Mother of AI project - 6 phases | [The Mother of AI project](https://jamwithai.substack.com/p/the-mother-of-ai-project) | - |
 | **Week 1** | Infrastructure Foundation | [The Infrastructure That Powers RAG Systems](https://jamwithai.substack.com/p/the-infrastructure-that-powers-rag) | [week1.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week1.0) |
 | **Week 2** | Data Ingestion Pipeline | [Building Data Ingestion Pipelines for RAG](https://jamwithai.substack.com/p/bringing-your-rag-system-to-life) | [week2.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week2.0) |
 | **Week 3** | Hybrid Search Implementation | _Coming Soon_ | _Coming Soon_ |
