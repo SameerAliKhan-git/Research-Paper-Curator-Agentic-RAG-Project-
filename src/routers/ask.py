@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from src.dependencies import EmbeddingsDep, LangfuseDep, OllamaDep, OpenSearchDep
+from src.dependencies import CacheDep, EmbeddingsDep, LangfuseDep, OllamaDep, OpenSearchDep
 from src.schemas.api.ask import AskRequest, AskResponse
 from src.services.langfuse.tracer import RAGTracer
 
@@ -83,14 +83,29 @@ async def ask_question(
     embeddings_service: EmbeddingsDep,
     ollama_client: OllamaDep,
     langfuse_tracer: LangfuseDep,
+    cache_client: CacheDep,
 ) -> AskResponse:
-    """Clean RAG endpoint with essential tracing."""
+    """Clean RAG endpoint with essential tracing and exact match caching."""
 
     rag_tracer = RAGTracer(langfuse_tracer)
     start_time = time.time()
 
     with rag_tracer.trace_request("api_user", request.query) as trace:
         try:
+            # Check exact cache first
+            cached_response = None
+            if cache_client:
+                try:
+                    cached_response = await cache_client.find_cached_response(request)
+                    if cached_response:
+                        logger.info("Returning cached response for exact query match")
+                        return cached_response
+                except Exception as e:
+                    logger.warning(f"Cache check failed, proceeding with normal flow: {e}")
+
+            # Generate query embedding for hybrid search if needed
+            query_embedding = None
+
             # Retrieve chunks
             chunks, sources, _ = await _prepare_chunks_and_sources(
                 request, opensearch_client, embeddings_service, rag_tracer, trace
@@ -137,6 +152,14 @@ async def ask_question(
             )
 
             rag_tracer.end_request(trace, answer, time.time() - start_time)
+
+            # Store response in exact match cache
+            if cache_client:
+                try:
+                    await cache_client.store_response(request, response)
+                except Exception as e:
+                    logger.warning(f"Failed to store response in cache: {e}")
+
             return response
 
         except Exception as e:
@@ -151,6 +174,7 @@ async def ask_question_stream(
     embeddings_service: EmbeddingsDep,
     ollama_client: OllamaDep,
     langfuse_tracer: LangfuseDep,
+    cache_client: CacheDep,
 ) -> StreamingResponse:
     """Clean streaming RAG endpoint."""
 
@@ -160,6 +184,31 @@ async def ask_question_stream(
 
         with rag_tracer.trace_request("api_user", request.query) as trace:
             try:
+                # Check exact cache first
+                if cache_client:
+                    try:
+                        cached_response = await cache_client.find_cached_response(request)
+                        if cached_response:
+                            logger.info("Returning cached response for exact streaming query match")
+
+                            # Send metadata first (same format as non-cached)
+                            metadata_response = {
+                                "sources": cached_response.sources,
+                                "chunks_used": cached_response.chunks_used,
+                                "search_mode": cached_response.search_mode,
+                            }
+                            yield f"data: {json.dumps(metadata_response)}\n\n"
+
+                            # Stream the cached response in chunks
+                            for chunk in cached_response.answer.split():
+                                yield f"data: {json.dumps({'chunk': chunk + ' '})}\n\n"
+
+                            # Send completion signal with just the final answer
+                            yield f"data: {json.dumps({'answer': cached_response.answer, 'done': True})}\n\n"
+                            return
+                    except Exception as e:
+                        logger.warning(f"Cache check failed, proceeding with normal flow: {e}")
+
                 # Retrieve chunks
                 chunks, sources, _ = await _prepare_chunks_and_sources(
                     request, opensearch_client, embeddings_service, rag_tracer, trace
@@ -199,6 +248,21 @@ async def ask_question_stream(
                             break
 
                 rag_tracer.end_request(trace, full_response, time.time() - start_time)
+
+                # Store response in exact match cache
+                if cache_client and full_response:
+                    try:
+                        search_mode = "bm25" if not request.use_hybrid else "hybrid"
+                        response_to_cache = AskResponse(
+                            query=request.query,
+                            answer=full_response,
+                            sources=sources,
+                            chunks_used=len(chunks),
+                            search_mode=search_mode,
+                        )
+                        await cache_client.store_response(request, response_to_cache)
+                    except Exception as e:
+                        logger.warning(f"Failed to store streaming response in cache: {e}")
 
             except Exception as e:
                 logger.error(f"Streaming error: {e}")
