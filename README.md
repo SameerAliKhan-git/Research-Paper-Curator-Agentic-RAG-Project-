@@ -85,7 +85,7 @@ curl http://localhost:8000/health
 | **Week 3** | OpenSearch ingestion & BM25 retrieval | [The Search Foundation Every RAG System Needs](https://jamwithai.substack.com/p/the-search-foundation-every-rag-system) | [week3.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week3.0) |
 | **Week 4** | **Chunking & Hybrid Search** | [The Chunking Strategy That Makes Hybrid Search Work](https://jamwithai.substack.com/p/the-chunking-strategy-that-makes-hybrid-search-work) | [week4.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week4.0) |
 | **Week 5** | **Complete RAG system** | [The Complete RAG System](https://jamwithai.substack.com/p/the-complete-rag-system) | [week5.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week5.0) |
-| **Week 6** | **Production monitoring & caching** | (Production-ready RAG: Monitoring & Caching)[https://jamwithai.substack.com/p/production-ready-rag-monitoring-and] | [week6.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week6.0) |
+| **Week 6** | **Production monitoring & caching** | [Production-ready RAG: Monitoring & Caching](https://jamwithai.substack.com/p/production-ready-rag-monitoring-and) | [week6.0](https://github.com/jamwithai/arxiv-paper-curator/releases/tag/week6.0) |
 
 **📥 Clone a specific week's release:**
 ```bash
