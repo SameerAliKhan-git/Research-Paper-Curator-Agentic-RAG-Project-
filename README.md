@@ -41,7 +41,7 @@ By the end of this course, you'll have your own AI research assistant and the de
 - **Week 4:** Intelligent chunking + hybrid search combining keywords with semantic understanding
 - **Week 5:** Complete RAG pipeline with local LLM, streaming responses, and Gradio interface
 - **Week 6:** Production monitoring with Langfuse tracing and Redis caching for optimized performance
-- **Week 7:** **Agentic RAG with LangGraph and Telegram Bot for intelligent reasoning and mobile access**
+- **Week 7:** **Agentic RAG with LangGraph and Telegram Bot for mobile access**
 
 ---
 
@@ -59,20 +59,8 @@ By the end of this course, you'll have your own AI research assistant and the de
   <p><em>Detailed LangGraph workflow showing decision nodes, document grading, and adaptive retrieval</em></p>
 </div>
 
-**Agentic RAG Workflow:**
-```
-User Query → Guardrail Node → [PROCEED or OUT_OF_SCOPE]
-         ↓
-   Retrieve Node (attempt 1)
-         ↓
-   Grade Documents → [RELEVANT or INSUFFICIENT]
-         ↓
-   [If INSUFFICIENT] → Rewrite Query → Retrieve Node (attempt 2)
-         ↓
-   Generate Answer Node → Final Response with Citations
-```
 
-**Week 7 blog:** [Agentic RAG with LangGraph and Telegram](https://jamwithai.substack.com/p/agentic-rag-with-langgraph-and-telegram) 
+**Week 7 Code walkthrough + blog:** [Agentic RAG with LangGraph and Telegram](https://jamwithai.substack.com/p/agentic-rag-with-langgraph-and-telegram) 
 
 **Key Innovations in Week 7:**
 - **Intelligent Decision-Making**: Agents evaluate and adapt retrieval strategies
