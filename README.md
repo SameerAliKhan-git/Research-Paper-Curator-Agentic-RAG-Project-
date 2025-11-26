@@ -39,8 +39,8 @@ By the end of this course, you'll have your own AI research assistant and the de
 - **Week 2:** Automated data pipeline fetching and parsing academic papers from arXiv  
 - **Week 3:** Production BM25 keyword search with filtering and relevance scoring
 - **Week 4:** Intelligent chunking + hybrid search combining keywords with semantic understanding
-- **Week 5:** **Complete RAG pipeline with local LLM, streaming responses, and Gradio interface**
-- **Week 6:** **Production monitoring with Langfuse tracing and Redis caching for optimized performance**
+- **Week 5:** Complete RAG pipeline with local LLM, streaming responses, and Gradio interface
+- **Week 6:** Production monitoring with Langfuse tracing and Redis caching for optimized performance
 - **Week 7:** **Agentic RAG with LangGraph and Telegram Bot for intelligent reasoning and mobile access**
 
 ---
@@ -72,13 +72,15 @@ User Query → Guardrail Node → [PROCEED or OUT_OF_SCOPE]
    Generate Answer Node → Final Response with Citations
 ```
 
+**Week 7 blog:** [Agentic RAG with LangGraph and Telegram](https://jamwithai.substack.com/p/agentic-rag-with-langgraph-and-telegram) 
+
 **Key Innovations in Week 7:**
-- 🤖 **Intelligent Decision-Making**: Agents evaluate and adapt retrieval strategies
-- 🔍 **Document Grading**: Automatic relevance assessment with semantic evaluation
-- 🔄 **Query Rewriting**: Adaptive query refinement when results are insufficient
-- 🛡️ **Guardrails**: Out-of-domain detection prevents hallucination
-- 📱 **Mobile Access**: Telegram bot for conversational AI on any device
-- 🔎 **Transparency**: Full reasoning step tracking for debugging and trust
+- **Intelligent Decision-Making**: Agents evaluate and adapt retrieval strategies
+- **Document Grading**: Automatic relevance assessment with semantic evaluation
+- **Query Rewriting**: Adaptive query refinement when results are insufficient
+- **Guardrails**: Out-of-domain detection prevents hallucination
+- **Mobile Access**: Telegram bot for conversational AI on any device
+- **Transparency**: Full reasoning step tracking for debugging and trust
 
 ---
 
@@ -101,7 +103,7 @@ cd arxiv-paper-curator
 cp .env.example .env
 # The .env file contains all necessary configuration for OpenSearch, 
 # arXiv API, and service connections. Defaults work out of the box.
-# For Week 4: Add JINA_API_KEY=your_key_here for hybrid search
+# You need to add Jina embeddings free api key and langfuse keys (check the blogs)
 
 # 3. Install dependencies
 uv sync
