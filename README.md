@@ -229,108 +229,68 @@ uv run jupyter notebook notebooks/week2/week2_arxiv_integration.ipynb
 
 ---
 
-## 📚 Week 3: Keyword Search First - The Critical Foundation ⚡
-
-> **🚨 The 90% Problem:** Most RAG systems jump straight to vector search and miss the foundation that powers the best retrieval systems. We're doing it right!
+## 📚 Week 3: Keyword Search First - The Critical Foundation
 
 **Building on Weeks 1-2 foundation:** Implement the keyword search foundation that professional RAG systems rely on.
 
-### **🎯 Why Keyword Search First?**
+### **🎯 Learning Objectives**
+- Why keyword search is essential for RAG systems (foundation first approach)
+- OpenSearch index management, mappings, and search optimization
+- BM25 algorithm and the math behind effective keyword search
+- Query DSL for building complex search queries with filters and boosting
+- Search analytics for measuring relevance and performance
+- Production patterns used by real companies
 
-**The Reality Check:** Vector search alone is not enough. The most effective RAG systems use **hybrid retrieval** - combining keyword search (BM25) with vector search. Here's why we start with keywords:
-
-1. **🔍 Exact Match Power:** Keywords excel at finding specific terms, technical jargon, and precise phrases
-2. **📊 Interpretable Results:** You can understand exactly why a document was retrieved  
-3. **⚡ Speed & Efficiency:** BM25 is computationally fast and doesn't require expensive embedding models
-4. **🎯 Domain Knowledge:** Technical papers often require exact terminology matches that vector search might miss
-5. **📈 Production Reality:** Companies like Elasticsearch, Algolia, and enterprise search all use keyword search as their foundation
-
-### **🏗️ Week 3 Architecture Overview**
+### **🏗️ Architecture Overview**
 
 <p align="center">
   <img src="static/week3_opensearch_flow.png" alt="Week 3 OpenSearch Flow Architecture" width="800">
-  <br>
-  <em>Complete Week 3 architecture showing the OpenSearch integration flow</em>
 </p>
 
-**Search Infrastructure:** Master full-text search with OpenSearch before adding vector complexity.
+**Search Infrastructure Components:**
+- **OpenSearch Service**: `src/services/opensearch/` - Professional search service implementation
+- **Search API**: `src/routers/search.py` - Search API endpoints with BM25 scoring
+- **Learning Materials**: `notebooks/week3/` - Complete OpenSearch integration guide
+- **Quality Metrics**: Precision, recall, and relevance scoring
 
-#### **🎯 Learning Objectives**
-- **Foundation First:** Why keyword search is essential for RAG systems
-- **OpenSearch Mastery:** Index management, mappings, and search optimization
-- **BM25 Algorithm:** Understanding the math behind effective keyword search
-- **Query DSL:** Building complex search queries with filters and boosting
-- **Search Analytics:** Measuring search relevance and performance
-- **Production Patterns:** How real companies structure their search systems
-
-#### **Key Components**
-- `src/services/opensearch/`: Professional search service implementation
-- `src/routers/search.py`: Search API endpoints with BM25 scoring
-- `notebooks/week3/`: Complete OpenSearch integration guide  
-- **Search Quality Metrics:** Precision, recall, and relevance scoring
-
-#### **💡 The Pedagogical Approach**
-```
-Week 3: Master keyword search (BM25) ← YOU ARE HERE
-Week 4: Add intelligent chunking strategies  
-Week 5: Introduce vector embeddings for hybrid retrieval
-Week 6: Optimize the complete hybrid system
-```
-
-**This progression mirrors how successful companies build search systems - solid foundation first, then enhance with advanced techniques.**
-
-### **📓 Week 3 Implementation Guide**
+### **📓 Setup Guide**
 
 ```bash
 # Launch the Week 3 notebook
 uv run jupyter notebook notebooks/week3/week3_opensearch.ipynb
 ```
 
+**Completion Guide:** Follow the [Week 3 notebook](notebooks/week3/week3_opensearch.ipynb) for hands-on OpenSearch setup and BM25 search implementation.
+
 ### **📖 Deep Dive**
 **Blog Post:** [The Search Foundation Every RAG System Needs](https://jamwithai.substack.com/p/the-search-foundation-every-rag-system) - Complete BM25 implementation with OpenSearch
 
 ---
 
-## 📚 Week 4: Chunking & Hybrid Search - The Semantic Layer 🔥
-
-> **🚀 The Intelligence Upgrade:** Now we enhance our solid BM25 foundation with semantic understanding through intelligent chunking and hybrid retrieval.
+## 📚 Week 4: Chunking & Hybrid Search - The Semantic Layer
 
 **Building on Week 3 foundation:** Add the semantic layer that makes search truly intelligent.
 
-### **🎯 Why Chunking + Hybrid Search?**
+### **🎯 Learning Objectives**
+- Section-based chunking with intelligent document segmentation
+- Production embeddings with Jina AI integration and fallback strategies
+- Hybrid search mastery using RRF fusion for keyword + semantic retrieval
+- Unified API design with single endpoint supporting multiple search modes
+- Performance analysis and trade-offs between search approaches
 
-**The Next Level:** With solid BM25 search proven, we can now intelligently add semantic capabilities:
-
-1. **🧩 Smart Chunking:** Break documents into coherent, searchable segments that preserve context
-2. **🤖 Semantic Understanding:** Find relevant content even when users paraphrase or use synonyms  
-3. **⚖️ Hybrid Excellence:** Combine keyword precision with semantic recall using RRF fusion
-4. **📊 Best of Both Worlds:** Fast exact matching + deep semantic understanding
-5. **🏭 Production Reality:** How modern RAG systems actually work in practice
-
-### **🏗️ Week 4 Architecture Overview**
+### **🏗️ Architecture Overview**
 
 <p align="center">
   <img src="static/week4_hybrid_opensearch.png" alt="Week 4 Hybrid Search Architecture" width="800">
-  <br>
-  <em>Complete Week 4 hybrid search architecture with chunking, embeddings, and RRF fusion</em>
 </p>
 
-**Hybrid Search Infrastructure:** Production-grade chunking strategies with unified search supporting BM25, vector, and hybrid modes.
+**Hybrid Search Infrastructure Components:**
+- **Text Chunker**: `src/services/indexing/text_chunker.py` - Section-aware chunking with overlap strategies
+- **Embeddings Service**: `src/services/embeddings/` - Production embedding pipeline with Jina AI
+- **Hybrid Search API**: `src/routers/hybrid_search.py` - Unified search API supporting all modes
+- **Learning Materials**: `notebooks/week4/` - Complete hybrid search implementation guide
 
-#### **🎯 Learning Objectives**
-- **Section-Based Chunking:** Intelligent document segmentation that respects structure
-- **Production Embeddings:** Jina AI integration with fallback strategies  
-- **Hybrid Search Mastery:** RRF fusion combining keyword + semantic retrieval
-- **Unified API Design:** Single endpoint supporting multiple search modes
-- **Performance Analysis:** Understanding trade-offs between search approaches
-
-#### **Key Components**
-- `src/services/indexing/text_chunker.py`: Section-aware chunking with overlap strategies
-- `src/services/embeddings/`: Production embedding pipeline with Jina AI
-- `src/routers/hybrid_search.py`: Unified search API supporting all modes  
-- `notebooks/week4/`: Complete hybrid search implementation guide
-
-### **📓 Week 4 Implementation Guide**
+### **📓 Setup Guide**
 
 ```bash
 # Launch the Week 4 notebook
@@ -339,52 +299,36 @@ uv run jupyter notebook notebooks/week4/week4_hybrid_search.ipynb
 
 **Completion Guide:** Follow the [Week 4 notebook](notebooks/week4/week4_hybrid_search.ipynb) for hands-on implementation and verification steps.
 
-### **📖 Deep Dive**  
-**Blog Post:** [The Chunking Strategy That Makes Hybrid Search Work](link-to-week4-blog) - Production chunking and RRF fusion implementation
+### **📖 Deep Dive**
+**Blog Post:** [The Chunking Strategy That Makes Hybrid Search Work](https://jamwithai.substack.com/p/chunking-strategies-and-hybrid-rag) - Production chunking and RRF fusion implementation
 
 ---
 
-## 📚 Week 5: Complete RAG Pipeline with LLM Integration 🚀
-
-> **🎯 The RAG Completion:** Transform search results into intelligent answers with local LLM integration and streaming responses.
+## 📚 Week 5: Complete RAG Pipeline with LLM Integration
 
 **Building on Week 4 hybrid search:** Add the LLM layer that turns search into intelligent conversation.
 
-### **🎯 Why Local LLM + Streaming?**
+### **🎯 Learning Objectives**
+- Local LLM integration with Ollama for complete data privacy
+- Performance optimization with 80% prompt reduction (6x speed improvement)
+- Streaming implementation using Server-Sent Events for real-time responses
+- Dual API design with standard and streaming endpoints
+- Interactive Gradio interface with advanced parameter controls
 
-**The Production Advantage:** Complete the RAG pipeline with privacy-first, optimized generation:
-
-1. **🏠 Local LLM Control:** Complete data privacy with Ollama - no external API calls
-2. **⚡ 6x Performance Boost:** Optimized from 120s → 15-20s through prompt engineering
-3. **📡 Real-time Streaming:** Server-Sent Events for immediate user feedback
-4. **🎛️ User-Friendly Interface:** Gradio web UI for non-technical users
-5. **🔧 Production Ready:** Clean API design with comprehensive error handling
-
-### **🏗️ Week 5 Architecture Overview**
+### **🏗️ Architecture Overview**
 
 <p align="center">
   <img src="static/week5_complete_rag.png" alt="Week 5 Complete RAG System Architecture" width="900">
-  <br>
-  <em>Complete RAG system with LLM generation layer (Ollama), hybrid retrieval pipeline, and Gradio interface</em>
 </p>
 
-**Complete RAG Infrastructure:** Local LLM generation with optimized prompting, dual API endpoints, and interactive web interface.
+**Complete RAG Infrastructure Components:**
+- **RAG Endpoints**: `src/routers/ask.py` - Dual endpoints (`/api/v1/ask` + `/api/v1/stream`)
+- **Ollama Service**: `src/services/ollama/` - LLM client with optimized prompts
+- **System Prompt**: `src/services/ollama/prompts/rag_system.txt` - Optimized for academic papers
+- **Gradio Interface**: `src/gradio_app.py` - Interactive web UI with streaming support
+- **Launcher Script**: `gradio_launcher.py` - Easy-launch script (runs on port 7861)
 
-#### **🎯 Learning Objectives**
-- **Local LLM Mastery:** Ollama service integration with multiple model support
-- **Performance Optimization:** 80% prompt reduction, 6x speed improvement techniques
-- **Streaming Implementation:** Server-Sent Events for real-time response generation
-- **Dual API Design:** Standard and streaming endpoints for different use cases
-- **Interactive UI:** Gradio interface with advanced parameter controls
-
-#### **Key Components**
-- `src/routers/ask.py`: Dual RAG endpoints (`/api/v1/ask` + `/api/v1/stream`)
-- `src/services/ollama/`: LLM client with optimized prompts and 300-word response limits
-- `src/services/ollama/prompts/rag_system.txt`: Optimized system prompt for academic papers
-- `src/gradio_app.py`: Interactive web interface with real-time streaming support
-- `gradio_launcher.py`: Easy-launch script for the web UI (runs on port 7861)
-
-### **📓 Week 5 Implementation Guide**
+### **📓 Setup Guide**
 
 ```bash
 # Launch the Week 5 notebook
@@ -395,256 +339,88 @@ uv run python gradio_launcher.py
 # Open http://localhost:7861
 ```
 
-### **🔧 API Endpoints**
-
-**Standard RAG Endpoint:** `/api/v1/ask`
-- **Response Type**: Complete JSON response
-- **Use Case**: Batch processing, API integrations
-- **Response Time**: 15-20 seconds
-
-**Streaming RAG Endpoint:** `/api/v1/stream`
-- **Response Type**: Server-Sent Events (SSE)
-- **Use Case**: Interactive UIs, real-time feedback
-- **Time to First Token**: 2-3 seconds
-
-**Request Format** (both endpoints):
-```json
-{
-    "query": "Your question here",
-    "top_k": 3,                    // Number of chunks (1-10)
-    "use_hybrid": true,            // Hybrid vs BM25 search
-    "model": "llama3.2:1b",        // LLM model to use
-    "categories": ["cs.AI"]        // Optional category filter
-}
-```
+**Completion Guide:** Follow the [Week 5 notebook](notebooks/week5/week5_complete_rag_system.ipynb) for hands-on LLM integration and RAG pipeline implementation.
 
 ### **📖 Deep Dive**
 **Blog Post:** [The Complete RAG System](https://jamwithai.substack.com/p/the-complete-rag-system) - Complete RAG system with local LLM integration and optimization techniques
 
 ---
 
-## 📚 Week 6: Production Monitoring and Caching 🚀
-
-> **🎯 Production Excellence:** Transform your RAG system from functional to production-ready with comprehensive monitoring and intelligent caching.
+## 📚 Week 6: Production Monitoring and Caching
 
 **Building on Week 5 complete RAG system:** Add observability, performance optimization, and production-grade monitoring.
 
-### **🎯 Why Monitoring + Caching?**
+### **🎯 Learning Objectives**
+- Langfuse integration for end-to-end RAG pipeline tracing
+- Redis caching strategy with intelligent cache keys and TTL management
+- Performance monitoring with real-time dashboards for latency and costs
+- Production patterns for observability and optimization
+- Cost analysis and LLM usage optimization (150-400x speedup with caching)
 
-**The Production Reality:** A working RAG system isn't enough - you need visibility and optimization:
-
-1. **📊 Complete Observability:** Trace every step from query to answer with Langfuse
-2. **⚡ 150-400x Performance Boost:** Redis caching serves repeated queries in ~50ms vs 15-20s
-3. **💰 Cost Optimization:** 60%+ cache hit rate eliminates redundant LLM calls
-4. **🔍 Performance Insights:** Real-time dashboards showing bottlenecks and opportunities
-5. **🛡️ Production Hardening:** Health checks, graceful degradation, and monitoring
-
-### **🏗️ Week 6 Architecture Overview**
+### **🏗️ Architecture Overview**
 
 <p align="center">
   <img src="static/week6_monitoring_and_caching.png" alt="Week 6 Monitoring & Caching Architecture" width="900">
-  <br>
-  <em>Production RAG system with Langfuse tracing and Redis caching layers</em>
 </p>
 
-**Production Infrastructure:** Complete observability layer with Langfuse tracking every RAG operation, plus Redis caching for instant response delivery.
+**Production Infrastructure Components:**
+- **Langfuse Service**: `src/services/langfuse/` - Complete tracing integration with RAG-specific metrics
+- **Cache Service**: `src/services/cache/` - Redis client with exact-match caching and graceful fallback
+- **Updated Endpoints**: `src/routers/ask.py` - Integrated tracing and caching middleware
+- **Docker Config**: `docker-compose.yml` - Added Redis service and Langfuse local instance
+- **Learning Materials**: `notebooks/week6/` - Complete monitoring and caching implementation guide
 
-#### **🎯 Learning Objectives**
-- **Langfuse Integration:** End-to-end RAG pipeline tracing with performance analytics
-- **Redis Caching Strategy:** Intelligent cache keys with TTL management and fallback
-- **Performance Monitoring:** Real-time dashboards showing latency, costs, and hit rates
-- **Production Patterns:** Industry-standard observability and optimization techniques
-- **Cost Analysis:** Understanding and optimizing LLM usage and infrastructure costs
-
-#### **Key Components**
-- `src/services/langfuse/`: Complete tracing integration with RAG-specific metrics
-- `src/services/cache/`: Redis client with exact-match caching and graceful fallback
-- `src/routers/ask.py`: Updated with integrated tracing and caching middleware
-- `docker-compose.yml`: Added Redis service and Langfuse local instance
-- `notebooks/week6/`: Complete monitoring and caching implementation guide
-
-### **📓 Week 6 Implementation Guide**
+### **📓 Setup Guide**
 
 ```bash
 # Launch the Week 6 notebook
 uv run jupyter notebook notebooks/week6/week6_cache_testing.ipynb
 ```
 
-### **🔧 Production Configuration**
-
-**Environment Variables:**
-```bash
-# Langfuse Configuration
-LANGFUSE__PUBLIC_KEY=pk-lf-your-public-key
-LANGFUSE__SECRET_KEY=sk-lf-your-secret-key
-LANGFUSE__HOST=http://localhost:3000
-LANGFUSE__ENABLED=true
-
-# Redis Configuration
-REDIS__URL=redis://redis:6379/0
-REDIS__CACHE_TTL_HOURS=24
-REDIS__MAX_CONNECTIONS=10
-```
-
-**Docker Services:**
-```bash
-# Start all services including Redis and Langfuse
-docker compose up --build -d
-
-# Verify Redis connectivity
-docker exec rag-redis redis-cli ping
-# Should return: PONG
-
-# Check cache statistics
-curl "http://localhost:8000/api/v1/health" | jq
-```
+**Completion Guide:** Follow the [Week 6 notebook](notebooks/week6/week6_cache_testing.ipynb) for hands-on Langfuse tracing and Redis caching implementation.
 
 ### **📖 Deep Dive**
 **Blog Post:** [Production-ready RAG: Monitoring & Caching](https://jamwithai.substack.com/p/production-ready-rag-monitoring-and) - Production-ready RAG with monitoring and caching
 
 ---
 
-## 📚 Week 7: Agentic RAG with LangGraph and Telegram Bot 🤖
-
-> **🎯 Advanced AI Systems:** Transform your RAG from static retrieval to intelligent agentic workflows with decision-making, adaptive retrieval, and conversational interfaces.
+## 📚 Week 7: Agentic RAG with LangGraph and Telegram Bot
 
 **Building on Week 6 production system:** Add intelligent reasoning, multi-step decision-making, and Telegram bot integration for mobile-first AI interactions.
 
-### **🎯 Why Agentic RAG + Telegram?**
+### **🎯 Learning Objectives**
+- LangGraph workflows for state-based agent orchestration with decision nodes
+- Guardrail implementation for query validation and domain boundary detection
+- Document grading with semantic relevance evaluation
+- Query rewriting for automatic query refinement and better retrieval
+- Adaptive retrieval with multi-attempt retrieval and intelligent fallback
+- Telegram bot integration with async operations and error handling
+- Reasoning transparency by exposing agent decision-making process
 
-**The Evolution to Intelligence:** Static RAG systems blindly retrieve and generate - agentic RAG thinks, evaluates, and adapts:
-
-1. **🧠 Intelligent Decision-Making:** Agents decide whether to retrieve, what to retrieve, and when to stop
-2. **🔍 Adaptive Retrieval:** Multi-attempt retrieval with query rewriting when results are insufficient
-3. **✅ Quality Assurance:** Automatic document grading ensures only relevant information reaches the LLM
-4. **🚫 Out-of-Domain Detection:** Gracefully handles queries outside system expertise
-5. **📱 Mobile-First Access:** Telegram bot brings your AI research assistant to any device
-6. **🔎 Transparency:** Reasoning steps exposed for debugging and trust-building
-
-### **🏗️ Week 7 Architecture Overview**
+### **🏗️ Architecture Overview**
 
 <p align="center">
-  <img src="static/week7_telegram_and_agentic_ai.png" alt="Week 7 Agentic RAG & Telegram Architecture" width="900" onerror="this.style.display='none'">
-  <br>
-  <em>Agentic RAG system with LangGraph workflows and Telegram bot integration</em>
+  <img src="static/week7_telegram_and_agentic_ai.png" alt="Week 7 Agentic RAG & Telegram Architecture" width="900">
 </p>
 
-**Agentic Architecture:** LangGraph-powered state machine with guardrails, document grading, query rewriting, and adaptive retrieval.
+**Agentic RAG Infrastructure Components:**
+- **Agent Nodes**: `src/services/agents/nodes/` - Guardrail, retrieve, grade, rewrite, and generate nodes
+- **Workflow Orchestration**: `src/services/agents/agentic_rag.py` - LangGraph workflow coordination
+- **Telegram Bot**: `src/services/telegram/` - Command handlers and message processing
+- **Agentic Endpoint**: `src/routers/agentic_ask.py` - Agentic RAG API endpoint
+- **Learning Materials**: `notebooks/week7/` - Week 7 learning materials and examples
 
-#### **🎯 Learning Objectives**
-- **LangGraph Workflows:** State-based agent orchestration with decision nodes
-- **Guardrail Node:** Query validation and domain boundary detection
-- **Document Grading:** Semantic relevance evaluation of retrieved documents
-- **Query Rewriting:** Automatic query refinement for better retrieval
-- **Adaptive Retrieval:** Multi-attempt retrieval with intelligent fallback
-- **Telegram Integration:** Production-ready bot with async operations and error handling
-- **Reasoning Transparency:** Exposing agent decision-making process
-
-#### **Key Components**
-- `src/services/agents/`: Modular agentic RAG implementation
-  - `nodes/guardrail_node.py`: Query validation and domain checking
-  - `nodes/retrieve_node.py`: Intelligent retrieval with tool calls
-  - `nodes/grade_documents_node.py`: Document relevance evaluation
-  - `nodes/rewrite_query_node.py`: Query refinement logic
-  - `nodes/generate_answer_node.py`: Final answer generation with citations
-  - `agentic_rag.py`: LangGraph workflow orchestration
-  - `config.py`, `context.py`, `models.py`: Configuration and context management
-- `src/services/telegram/`: Telegram bot implementation
-  - `bot.py`: Command handlers and message processing
-  - `factory.py`: Bot initialization and webhook setup
-- `src/routers/agentic_ask.py`: Agentic RAG API endpoint
-- `notebooks/week7/`: Week 7 learning materials and examples
-
-### **📓 Week 7 Implementation Guide**
+### **📓 Setup Guide**
 
 ```bash
 # Launch the Week 7 notebook
 uv run jupyter notebook notebooks/week7/week7_agentic_rag.ipynb
 ```
 
-### **🤖 LangGraph Workflow**
-
-The agentic RAG workflow consists of these decision nodes:
-
-```
-START → Guardrail Node → [PROCEED or OUT_OF_SCOPE]
-         ↓
-   Retrieve Node (attempt 1)
-         ↓
-   Grade Documents → [RELEVANT or INSUFFICIENT]
-         ↓
-   [If INSUFFICIENT] → Rewrite Query → Retrieve Node (attempt 2)
-         ↓
-   Generate Answer Node → END
-```
-
-**Key Features:**
-- ✅ **Guardrail validation** before retrieval
-- ✅ **Multi-attempt retrieval** with query rewriting
-- ✅ **Document grading** for quality assurance
-- ✅ **Reasoning step tracking** for transparency
-- ✅ **Graceful fallback** when retrieval fails
-
-### **📱 Telegram Bot Features**
-
-**Commands:**
-- `/start` - Initialize bot and get welcome message
-- `/help` - Show available commands and usage
-- `/search <query>` - Search papers with agentic RAG
-- Direct messages - Query papers conversationally
-
-**Setup Instructions:**
-```bash
-# 1. Get bot token from @BotFather on Telegram
-# 2. Add to .env file:
-TELEGRAM__ENABLED=true
-TELEGRAM__BOT_TOKEN=your_bot_token_here
-
-# 3. Restart services
-docker compose restart api
-
-# 4. Start chatting with your bot!
-```
-
-### **🔧 Production Configuration**
-
-**Environment Variables:**
-```bash
-# Telegram Bot
-TELEGRAM__ENABLED=true
-TELEGRAM__BOT_TOKEN=your_telegram_bot_token_here
-
-# Agentic RAG Configuration
-MAX_RETRIEVAL_ATTEMPTS=2
-GUARDRAIL_THRESHOLD=0.7
-AGENT_MODEL=llama3.2:1b
-
-# Existing configuration from Weeks 1-6
-LANGFUSE_ENABLED=true
-LANGFUSE_HOST=http://localhost:3001
-REDIS__HOST=redis
-```
-
-**Test Agentic RAG:**
-```bash
-# Test agentic endpoint
-curl -X 'POST' \
-  'http://localhost:8000/api/v1/ask-agentic' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "query": "What are transformer architectures?",
-    "categories": ["cs.AI", "cs.LG"],
-    "top_k": 3,
-    "use_hybrid": true
-  }'
-
-# Response includes reasoning_steps showing agent decisions
-```
+**Completion Guide:** Follow the [Week 7 notebook](notebooks/week7/week7_agentic_rag.ipynb) for hands-on LangGraph agentic RAG and Telegram bot implementation.
 
 ### **📖 Deep Dive**
 **Blog Post:** [Agentic RAG with LangGraph and Telegram](https://jamwithai.substack.com/p/agentic-rag-with-langgraph-and-telegram) - Building intelligent agents with decision-making, adaptive retrieval, and mobile access
-
-**Notebook:** [week7_agentic_rag.ipynb](notebooks/week7/week7_agentic_rag.ipynb) - Complete implementation guide with examples
 
 ---
 
@@ -686,86 +462,16 @@ cp .env.example .env
 
 ```
 arxiv-paper-curator/
-├── src/                                    # Main application code
-│   ├── main.py                             # FastAPI application
-│   ├── routers/                            # API endpoints
-│   │   ├── ping.py                         # Health check endpoints
-│   │   ├── papers.py                       # Paper retrieval endpoints
-│   │   ├── hybrid_search.py                # Week 4: Hybrid search endpoints
-│   │   └── ask.py                          # Week 5: RAG question answering endpoints
-│   ├── models/                             # Database models (SQLAlchemy)
-│   ├── repositories/                       # Data access layer
-│   ├── schemas/                            # Pydantic validation schemas
-│   │   ├── api/                            # API request/response schemas
-│   │   │   ├── health.py                   # Health check schemas
-│   │   │   ├── search.py                   # Search request/response schemas
-│   │   │   └── ask.py                      # Week 5: RAG request/response schemas
-│   │   ├── arxiv/                          # arXiv data schemas
-│   │   ├── pdf_parser/                     # PDF parsing schemas
-│   │   ├── database/                       # Database configuration schemas
-│   │   ├── indexing/                       # Week 4: Chunking schemas
-│   │   ├── embeddings/                     # Week 4: Embedding schemas
-│   │   ├── cache/                          # Week 6: Caching schemas
-│   │   └── langfuse/                       # Week 6: Monitoring schemas
-│   ├── services/                           # Business logic
-│   │   ├── arxiv/                          # arXiv API client
-│   │   ├── pdf_parser/                     # Docling PDF processing
-│   │   ├── opensearch/                     # OpenSearch integration
-│   │   │   ├── client.py                   # Unified search client (BM25 + Vector + Hybrid)
-│   │   │   ├── factory.py                  # Client factory pattern
-│   │   │   ├── index_config_hybrid.py      # Week 4: Hybrid index configuration
-│   │   │   └── query_builder.py            # BM25 query construction
-│   │   ├── indexing/                       # Week 4: Document processing
-│   │   │   ├── text_chunker.py             # Section-based chunking strategy
-│   │   │   ├── hybrid_indexer.py           # Document indexing with embeddings
-│   │   │   └── factory.py                  # Indexing service factory
-│   │   ├── embeddings/                     # Week 4: Embedding services
-│   │   │   ├── jina_client.py              # Jina AI embedding service
-│   │   │   └── factory.py                  # Embedding service factory
-│   │   ├── ollama/                         # Week 5: LLM services
-│   │   │   ├── client.py                   # Ollama LLM client
-│   │   │   ├── factory.py                  # LLM service factory
-│   │   │   └── prompts/                    # Optimized RAG prompts
-│   │   ├── langfuse/                       # Week 6: Monitoring services
-│   │   │   ├── client.py                   # Langfuse tracing client
-│   │   │   ├── tracer.py                   # RAG-specific tracing utilities
-│   │   │   └── factory.py                  # Monitoring service factory
-│   │   ├── cache/                          # Week 6: Caching services
-│   │   │   ├── client.py                   # Redis cache implementation
-│   │   │   └── factory.py                  # Cache service factory
-│   │   └── metadata_fetcher.py             # Complete ingestion pipeline
-│   ├── db/                                 # Database configuration
-│   ├── config.py                           # Environment configuration
-│   └── dependencies.py                     # Dependency injection
-│
-├── notebooks/                              # Learning materials
-│   ├── week1/                              # Week 1: Infrastructure setup
-│   │   └── week1_setup.ipynb               # Complete setup guide
-│   ├── week2/                              # Week 2: Data ingestion
-│   │   └── week2_arxiv_integration.ipynb   # Data pipeline guide
-│   ├── week3/                              # Week 3: Keyword search
-│   │   └── week3_opensearch.ipynb          # OpenSearch & BM25 guide
-│   ├── week4/                              # Week 4: Chunking & hybrid search
-│   │   ├── week4_hybrid_search.ipynb       # Complete hybrid search guide
-│   │   └── README.md                       # Week 4 implementation documentation
-│   ├── week5/                              # Week 5: Complete RAG system
-│   │   ├── week5_complete_rag_system.ipynb # Complete RAG implementation guide
-│   │   └── README.md                       # Week 5 implementation documentation
-│   └── week6/                              # Week 6: Production monitoring & caching
-│       ├── week6_cache_testing.ipynb       # Monitoring and caching guide
-│       └── README.md                       # Week 6 implementation documentation
-│
-├── airflow/                                # Workflow orchestration
-│   ├── dags/                               # Workflow definitions
-│   │   ├── arxiv_ingestion/                # arXiv ingestion modules
-│   │   └── arxiv_paper_ingestion.py        # Main ingestion DAG
-│   └── requirements-airflow.txt            # Airflow dependencies
-│
-├── gradio_app.py                           # Week 5: Interactive web interface
-├── gradio_launcher.py                      # Week 5: Easy-launch script for Gradio UI
-├── tests/                                  # Comprehensive test suite
-├── static/                                 # Assets (images, GIFs)
-└── compose.yml                             # Service orchestration
+├── src/                    # Main application code
+│   ├── routers/            # API endpoints (search, ask, papers)
+│   ├── services/           # Business logic (opensearch, ollama, agents, cache)
+│   ├── models/             # Database models (SQLAlchemy)
+│   ├── schemas/            # Pydantic validation schemas
+│   └── config.py           # Environment configuration
+├── notebooks/              # Weekly learning materials (week1-7)
+├── airflow/                # Workflow orchestration (DAGs)
+├── tests/                  # Test suite
+└── compose.yml             # Docker service orchestration
 ```
 
 ### **📡 API Endpoints Reference**
@@ -825,24 +531,6 @@ uv run pytest                 # Run tests
 | **AI/ML Engineers** | Learn production RAG architecture beyond tutorials |
 | **Software Engineers** | Build end-to-end AI applications with best practices |
 | **Data Scientists** | Implement production AI systems using modern tools |
-
----
-
-
-## 📊 Performance Milestones
-
-Progressive performance improvements across the 7-week journey:
-
-| Week | Achievement | Metric | Details |
-|------|------------|--------|---------|
-| **Week 4** | Hybrid Search | Precision: 0.84 vs 0.67 | RRF fusion combines keyword + semantic search |
-| **Week 5** | LLM Integration | 6x faster (15-20s) | Optimized from 120s through prompt engineering |
-| **Week 6** | Caching | 150-400x speedup | Redis cache: 50ms vs 15-20s for repeated queries |
-| **Week 6** | Cost Reduction | 63% savings | Cache hit rate eliminates 60% of LLM calls |
-| **Week 7** | Answer Quality | 92% relevance | Agentic RAG with adaptive retrieval and grading |
-| **Week 7** | Reliability | 80% fewer failures | Guardrails and query rewriting handle edge cases |
-
-**See individual week blog posts for detailed performance analysis and benchmarks.**
 
 ---
 
