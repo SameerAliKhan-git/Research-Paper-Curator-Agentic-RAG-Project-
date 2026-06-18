@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arXiv Paper Curator — Production-Grade Agentic RAG System</title>
+    <meta name="description" content="Search, retrieve, and ask complex questions about AI and Machine Learning research papers. Powered by Hybrid OpenSearch and LangGraph agents.">
+    <!-- Google Fonts: Bricolage Grotesque (Display substitute), Inter (UI & Body), JetBrains Mono (Code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-bold">arxiv</span><span class="logo-light">/paper-curator</span>
+            </a>
+            <div class="nav-center">
+                <a href="#playground" class="nav-link">Explore</a>
+                <a href="#how-it-works" class="nav-link">How it works</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="/docs" target="_blank" class="nav-link">API Docs</a>
+            </div>
+            <div class="nav-right">
+                <a href="https://github.com/jamwithai/arxiv-paper-curator" target="_blank" class="nav-icon-btn" aria-label="GitHub">
+                    <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                </a>
+                <a href="#playground" class="btn-dark-sm">Console</a>
+                <a href="#playground" class="btn-primary-sm">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-band">
+        <div class="hero-mesh-overlay"></div>
+        <div class="hero-container">
+            <div class="hero-content">
+                <span class="hero-badge">PRODUCTION GRADE RAG</span>
+                <h1 class="hero-title">Scale AI paper research.</h1>
+                <p class="hero-subtitle">
+                    Automate discovery and chat directly with structured arXiv databases. Uses hybrid keyword-vector retrieval coupled with LangGraph adaptive agents.
+                </p>
+                <div class="hero-cta-group">
+                    <a href="#playground" class="btn-primary">Try Agentic Search</a>
+                    <a href="#how-it-works" class="btn-outline-white">Read the Docs</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <!-- Workbench ink-style stylized drawing SVG -->
+                <svg viewBox="0 0 400 300" width="100%" height="100%" class="hero-illustration">
+                    <rect x="20" y="40" width="360" height="220" rx="10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" />
+                    <!-- Workbench surface -->
+                    <line x1="10" y1="230" x2="390" y2="230" stroke="currentColor" stroke-width="2" />
+                    <!-- Computer Monitor -->
+                    <rect x="130" y="70" width="140" height="90" rx="6" fill="#202020" stroke="currentColor" stroke-width="2" />
+                    <line x1="200" y1="160" x2="200" y2="200" stroke="currentColor" stroke-width="2" />
+                    <line x1="170" y1="200" x2="230" y2="200" stroke="currentColor" stroke-width="2" />
+                    <!-- Code lines inside monitor -->
+                    <line x1="145" y1="85" x2="210" y2="85" stroke="#ea2804" stroke-width="2" />
+                    <line x1="145" y1="100" x2="245" y2="100" stroke="currentColor" stroke-width="1.5" />
+                    <line x1="145" y1="115" x2="225" y2="115" stroke="currentColor" stroke-width="1.5" />
+                    <line x1="145" y1="130" x2="190" y2="130" stroke="currentColor" stroke-width="1.5" />
+                    <!-- Books / Papers -->
+                    <rect x="40" y="160" width="60" height="70" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(-15 40 160)" />
+                    <line x1="50" y1="175" x2="90" y2="175" stroke="currentColor" stroke-width="1" transform="rotate(-15 40 160)" />
+                    <line x1="50" y1="190" x2="90" y2="190" stroke="currentColor" stroke-width="1" transform="rotate(-15 40 160)" />
+                    <!-- Flask / Scientific Instrument -->
+                    <path d="M320,180 L330,180 L330,200 L345,225 A15,15 0 0,1 330,230 L310,230 A15,15 0 0,1 295,225 L310,200 L310,180 Z" fill="none" stroke="currentColor" stroke-width="1.5" />
+                    <circle cx="320" cy="215" r="5" fill="#ea2804" />
+                    <circle cx="330" cy="205" r="3" fill="currentColor" />
+                    <!-- Sparkles / Ideas -->
+                    <path d="M280,60 L285,70 L295,75 L285,80 L280,90 L275,80 L265,75 L275,70 Z" fill="currentColor" />
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- Brand Divider -->
+    <div class="brand-divider"></div>
+
+    <!-- Playground Console Section -->
+    <section id="playground" class="section-container">
+        <h2 class="section-title">Interactive Research Panel</h2>
+        <p class="section-lead">Query our production OpenSearch cluster using hybrid index routing or adaptive agent nodes.</p>
+
+        <div class="playground-layout">
+            <!-- Left Panel: Parameters Form -->
+            <div class="console-parameters">
+                <div class="param-card">
+                    <h3 class="param-heading">Execution Parameters</h3>
+                    
+                    <div class="form-group">
+                        <label for="query-text" class="form-label">Research Query</label>
+                        <textarea id="query-text" class="text-input" placeholder="What are transformer architectures in deep learning?" rows="3">What are transformers in machine learning?</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Search Mode</label>
+                        <div class="radio-pill-group">
+                            <label class="radio-pill">
+                                <input type="radio" name="search-mode" value="bm25">
+                                <span>Keyword (BM25)</span>
+                            </label>
+                            <label class="radio-pill">
+                                <input type="radio" name="search-mode" value="hybrid" checked>
+                                <span>Hybrid (Vector+BM25)</span>
+                            </label>
+                            <label class="radio-pill">
+                                <input type="radio" name="search-mode" value="agentic">
+                                <span>Agentic (LangGraph)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="model-select" class="form-label">LLM Engine</label>
+                            <div class="select-wrapper">
+                                <select id="model-select" class="select-input">
+                                    <option value="llama3.2:1b" selected>llama3.2:1b (Fast)</option>
+                                    <option value="llama3.2:3b">llama3.2:3b (Balanced)</option>
+                                    <option value="llama3.1:8b">llama3.1:8b (Powerful)</option>
+                                    <option value="qwen2.5:7b">qwen2.5:7b (Precise)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group half">
+                            <label for="top-k-slider" class="form-label">Context Depth (Top K)</label>
+                            <div class="slider-container">
+                                <input type="range" id="top-k-slider" min="1" max="10" value="3" class="slider-input">
+                                <span id="top-k-value" class="slider-value">3 chunks</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category-tags" class="form-label">arXiv Categories Filter</label>
+                        <input type="text" id="category-tags" class="text-input" placeholder="cs.AI, cs.LG, cs.CV (Leave empty for all)">
+                    </div>
+
+                    <button id="run-query-btn" class="btn-primary-full">Execute Retrieval Pipeline</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Output Terminal -->
+            <div class="console-terminal">
+                <div class="terminal-card">
+                    <div class="terminal-header">
+                        <div class="terminal-indicator">
+                            <span class="status-dot success"></span>
+                            <span id="terminal-status-text" class="status-text">Ready</span>
+                        </div>
+                        <div class="terminal-meta">
+                            <span id="terminal-latency" class="meta-item">-- ms</span>
+                            <span id="terminal-mode" class="meta-item">unified</span>
+                        </div>
+                    </div>
+                    
+                    <div class="terminal-body">
+                        <!-- Streaming Output Area -->
+                        <div id="output-container" class="output-content">
+                            <p class="placeholder-text">Configure parameters on the left and run a query to stream answers...</p>
+                        </div>
+
+                        <!-- Timeline (Agentic Steps) -->
+                        <div id="timeline-container" class="agent-timeline" style="display: none;">
+                            <h4 class="timeline-title">Agent Decision Flow</h4>
+                            <ul id="timeline-steps" class="timeline-list">
+                                <!-- Steps appended dynamically -->
+                            </ul>
+                        </div>
+
+                        <!-- Citations -->
+                        <div id="citations-container" class="citations-block" style="display: none;">
+                            <h4 class="citations-title">Sources Retained</h4>
+                            <ul id="citations-list" class="citations-list">
+                                <!-- Citations appended dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="terminal-footer">
+                        <div class="feedback-block" id="feedback-panel" style="display: none;">
+                            <span class="feedback-prompt">Rate this answer:</span>
+                            <button class="btn-feedback" id="feedback-up" title="Helpful">
+                                <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8.867 14.41c1.282 0 2.29-.982 2.29-2.294 0-.154-.015-.316-.046-.482.723-.082 1.346-.5 1.764-1.098.418-.598.63-1.314.595-2.072-.03-.68-.266-1.306-.666-1.782.383-.62.518-1.332.37-2.062a2.955 2.955 0 00-2.31-2.31c-.73-.147-1.44-.012-2.062.37-.476-.4-1.103-.637-1.782-.666-.757-.035-1.474.177-2.072.595-.598.418-1.016 1.04-1.098 1.764-.166-.03-.328-.046-.482-.046-1.312 0-2.294 1.008-2.294 2.29 0 .153.015.316.046.482-.723.082-1.346.5-1.764 1.098-.418.598-.63 1.314-.595 2.072.03.68.266 1.306.666 1.782-.383.62-.518 1.332-.37 2.062a2.955 2.955 0 002.31 2.31c.73.147 1.44.012 2.062-.37.476.4 1.103.637 1.782.666.757.035 1.474-.177 2.072-.595.598-.418 1.016-1.04 1.098-1.764.166.03.328.046.482.046zM1 7.25a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v5.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-5.5z"></path></svg>
+                            </button>
+                            <button class="btn-feedback" id="feedback-down" title="Not Helpful">
+                                <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M7.133 1.59c-1.282 0-2.29.982-2.29 2.294 0 .154.015.316.046.482-.723.082-1.346.5-1.764 1.098-.418.598-.63 1.314-.595 2.072.03.68.266 1.306.666 1.782-.383.62-.518 1.332-.37 2.062a2.955 2.955 0 002.31 2.31c.73.147 1.44.012 2.062-.37.476.4 1.103.637 1.782.666.757.035 1.474-.177 2.072-.595.598-.418 1.016-1.04 1.098-1.764.166-.03.328-.046.482-.046 1.312 0 2.294-1.008 2.294-2.29 0-.153-.015-.316-.046-.482.723-.082 1.346-.5 1.764-1.098.418-.598.63-1.314.595-2.072-.03-.68-.266-1.306-.666-1.782.383-.62.518-1.332.37-2.062a2.955 2.955 0 00-2.31-2.31c-.73-.147-1.44-.012-2.062-.37-.476-.4-1.103-.637-1.782-.666-.757-.035-1.474.177-2.072.595-.598.418-1.016 1.04-1.098 1.764-.166-.03-.328-.046-.482-.046zm7.867 8.75a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-5.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v5.5z"></path></svg>
+                            </button>
+                            <span id="feedback-status" class="feedback-status"></span>
+                        </div>
+                        <div class="terminal-trace-id" id="trace-id-display"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Inset Bone Background Container: Registry & Collections -->
+    <div class="bone-wrapper">
+        <section class="section-container">
+            <h2 class="section-title">Indexed Paper Registry</h2>
+            <p class="section-lead">Explore documents stored inside the repository database.</p>
+            
+            <div id="papers-grid" class="model-grid">
+                <!-- Dynamically loaded papers will go here -->
+                <div class="loading-placeholder">
+                    <span class="spinner"></span>
+                    <p>Loading indexed corpus...</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-container">
+            <h2 class="section-title">Explore Categories</h2>
+            <p class="section-lead">Quick-filter papers by core disciplines.</p>
+            <div class="collection-tiles">
+                <div class="collection-tile" onclick="selectCategory('cs.AI')">
+                    <h3 class="tile-title">Artificial Intelligence</h3>
+                    <p class="tile-category">cs.AI</p>
+                </div>
+                <div class="collection-tile" onclick="selectCategory('cs.LG')">
+                    <h3 class="tile-title">Machine Learning</h3>
+                    <p class="tile-category">cs.LG</p>
+                </div>
+                <div class="collection-tile" onclick="selectCategory('cs.CL')">
+                    <h3 class="tile-title">Computation & Language</h3>
+                    <p class="tile-category">cs.CL</p>
+                </div>
+                <div class="collection-tile" onclick="selectCategory('cs.CV')">
+                    <h3 class="tile-title">Computer Vision</h3>
+                    <p class="tile-category">cs.CV</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Code Walkthrough Section -->
+    <section id="how-it-works" class="section-container dark-inverted-band">
+        <div class="split-container">
+            <div class="split-narrative">
+                <h2 class="section-title-dark">How it works</h2>
+                <p class="body-lg-dark">
+                    Our platform decouples data extraction, search indexing, and multi-agent synthesis into a high-throughput pipeline.
+                </p>
+                <ul class="narrative-list">
+                    <li><strong>1. Ingestion Pipeline:</strong> Apache Airflow schedules metadata extractions from arXiv. PDFs are parsed via thread-isolated Docling parsers and loaded into PostgreSQL.</li>
+                    <li><strong>2. Hybrid Search Indexing:</strong> Chunks are vectorized using Jina AI embeddings and stored in OpenSearch alongside BM25 mappings. Searches run fused Reciprocal Rank Fusion (RRF) scores.</li>
+                    <li><strong>3. Multi-Agent Reasoning:</strong> A LangGraph state-graph validates inputs, retrieves context, grades document relevance, refines queries via LLM rewrites, and handles out-of-scope requests.</li>
+                </ul>
+            </div>
+            <div class="split-code">
+                <div class="code-block">
+                    <div class="code-tabs">
+                        <button class="code-tab active" onclick="switchCodeTab('python')">Python</button>
+                        <button class="code-tab" onclick="switchCodeTab('js')">Node.js</button>
+                        <button class="code-tab" onclick="switchCodeTab('curl')">cURL</button>
+                    </div>
+                    <div class="code-content-wrapper">
+                        <pre><code id="code-well" class="code-md"></code></pre>
+                        <button class="btn-copy-code" onclick="copyCodeContent()" title="Copy to clipboard">
+                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Grid Section -->
+    <section id="pricing" class="section-container">
+        <h2 class="section-title">Flexible Pricing</h2>
+        <p class="section-lead">Deploy locally for free or scale on our optimized infrastructure.</p>
+
+        <div class="pricing-grid">
+            <div class="pricing-tier">
+                <h3 class="tier-name">Community</h3>
+                <div class="tier-price">$0<span class="price-period">/mo</span></div>
+                <p class="tier-desc">Perfect for researchers running queries on local workstations.</p>
+                <hr class="tier-divider">
+                <ul class="tier-features">
+                    <li>Keyword (BM25) Local Retrieval</li>
+                    <li>Local Ollama Integrations</li>
+                    <li>Metadata Storage in PostgreSQL</li>
+                    <li>Standard Gradio Console Interface</li>
+                </ul>
+                <a href="#playground" class="btn-outline-full">Download Source</a>
+            </div>
+
+            <div class="pricing-tier-featured">
+                <div class="featured-badge">RECOMMENDED</div>
+                <h3 class="tier-name">Professional</h3>
+                <div class="tier-price">$49<span class="price-period">/mo</span></div>
+                <p class="tier-desc">Optimized search scoring, vector scaling, and multi-agent routing.</p>
+                <hr class="tier-divider">
+                <ul class="tier-features">
+                    <li>RRF Hybrid Search (Vector + BM25)</li>
+                    <li>Multi-Agent Routing (LangGraph)</li>
+                    <li>Observability Dashboard (Langfuse)</li>
+                    <li>Redis Query Caching & Streaming</li>
+                    <li>Mobile Access via Telegram Bot</li>
+                </ul>
+                <a href="#playground" class="btn-primary-full-pressed">Start 14-Day Trial</a>
+            </div>
+
+            <div class="pricing-tier">
+                <h3 class="tier-name">Enterprise</h3>
+                <div class="tier-price">Custom</div>
+                <p class="tier-desc">For research labs requiring dedicated pipelines and index scaling.</p>
+                <hr class="tier-divider">
+                <ul class="tier-features">
+                    <li>Dedicated OpenSearch Nodes</li>
+                    <li>Custom Fine-Tuned Embedding Support</li>
+                    <li>Airflow Ingestion Cluster (Unlimited)</li>
+                    <li>99.9% Uptime SLA and SOC2 Compliance</li>
+                    <li>24/7 Priority Engineer Support</li>
+                </ul>
+                <a href="mailto:enterprise@arxiv-paper-curator.local" class="btn-dark-full">Contact Sales</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contributor Marquee -->
+    <div class="contributor-divider"></div>
+    <section class="marquee-section">
+        <h3 class="marquee-heading">Community Contributors</h3>
+        <div class="marquee-container">
+            <div class="marquee-track">
+                <!-- Avatars with mock names -->
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Shirin K.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Shantanu L.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Alex M.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Sarah J.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Daniel R.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Elena P.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Marcus G.</span>
+                </div>
+                <!-- Duplicate for seamless scroll loop -->
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Shirin K.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Shantanu L.</span>
+                </div>
+                <div class="avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80" alt="Contributor" class="contributor-avatar">
+                    <span class="avatar-name">Alex M.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Global Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-col brand">
+                <a href="/" class="footer-logo">
+                    <span class="logo-bold">arxiv</span><span class="logo-light">/paper-curator</span>
+                </a>
+                <p class="footer-brand-text">
+                    Production-grade agentic search infrastructure for academic research paper retrieval and question answering. Built with FastAPI, OpenSearch, and LangGraph.
+                </p>
+            </div>
+            <div class="footer-col">
+                <h4>Engine</h4>
+                <a href="#playground">Console</a>
+                <a href="#how-it-works">Architecture</a>
+                <a href="#pricing">Pricing</a>
+            </div>
+            <div class="footer-col">
+                <h4>Dashboards</h4>
+                <a href="http://localhost:3000" target="_blank">Langfuse Tracing</a>
+                <a href="http://localhost:8080" target="_blank">Airflow Dag Pipeline</a>
+                <a href="http://localhost:5601" target="_blank">OpenSearch Dashboards</a>
+            </div>
+            <div class="footer-col">
+                <h4>API Documentation</h4>
+                <a href="http://localhost:8000/docs" target="_blank">Swagger API Spec</a>
+                <a href="http://localhost:8000/redoc" target="_blank">ReDoc Specification</a>
+                <a href="https://export.arxiv.org/oai2" target="_blank">arXiv OAI-PMH</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p class="copyright">&copy; 2026 arXiv Paper Curator. Open sourced under the MIT License.</p>
+            <p class="attribution">Built with love by Shirin Khosravi Jam & Shantanu Ladhwe.</p>
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script src="/static/index.js"></script>
+</body>
+</html>

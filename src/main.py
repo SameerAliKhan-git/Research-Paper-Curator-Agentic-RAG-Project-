@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from src.config import get_settings
 from src.db.factory import make_database
-from src.routers import agentic_ask, hybrid_search, ping
+from src.routers import agentic_ask, hybrid_search, ping, papers
 from src.routers.ask import ask_router, stream_router
 from src.services.arxiv.factory import make_arxiv_client
 from src.services.cache.factory import make_cache_client
@@ -116,6 +116,19 @@ app.include_router(hybrid_search.router, prefix="/api/v1")  # Search chunks with
 app.include_router(ask_router, prefix="/api/v1")  # RAG question answering with LLM
 app.include_router(stream_router, prefix="/api/v1")  # Streaming RAG responses
 app.include_router(agentic_ask.router)  # Agentic RAG with intelligent retrieval
+app.include_router(papers.router, prefix="/api/v1")  # List indexed papers from DB
+
+# Serve UI static files and mount assets
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+async def serve_index():
+    """Serve the production Replicate-themed web interface."""
+    return FileResponse("static/index.html")
 
 
 if __name__ == "__main__":

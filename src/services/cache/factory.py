@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import redis
 from src.config import Settings
@@ -37,7 +38,7 @@ def make_redis_client(settings: Settings) -> redis.Redis:
         raise
 
 
-def make_cache_client(settings: Settings) -> CacheClient:
+def make_cache_client(settings: Settings) -> Optional[CacheClient]:
     """Create exact match cache client."""
     try:
         redis_client = make_redis_client(settings)
@@ -45,5 +46,5 @@ def make_cache_client(settings: Settings) -> CacheClient:
         logger.info("Exact match cache client created successfully")
         return cache_client
     except Exception as e:
-        logger.error(f"Failed to create cache client: {e}")
-        raise
+        logger.warning(f"Failed to create cache client (caching disabled): {e}")
+        return None

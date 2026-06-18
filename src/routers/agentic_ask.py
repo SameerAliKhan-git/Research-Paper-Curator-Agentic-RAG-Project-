@@ -39,6 +39,7 @@ async def ask_agentic(
     try:
         result = await agentic_rag.ask(
             query=request.query,
+            model=request.model,
         )
 
         return AgenticAskResponse(
@@ -50,6 +51,7 @@ async def ask_agentic(
             reasoning_steps=result.get("reasoning_steps", []),
             retrieval_attempts=result.get("retrieval_attempts", 0),
             trace_id=result.get("trace_id"),
+            rewritten_query=result.get("rewritten_query"),
         )
 
     except ValueError as e:

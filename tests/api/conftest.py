@@ -15,32 +15,78 @@ def anyio_backend() -> str:
 @pytest.fixture
 async def client():
     """HTTP client for API testing with mocked services."""
-    # Mock database startup and session to prevent real connections
     with (
-        patch("src.db.interfaces.postgresql.PostgreSQLDatabase.startup") as mock_startup,
-        patch("src.db.interfaces.postgresql.PostgreSQLDatabase.get_session") as mock_get_session,
-        patch("src.services.opensearch.factory.make_opensearch_client") as mock_os,
-        patch("src.services.arxiv.factory.make_arxiv_client") as mock_arxiv,
-        patch("src.services.pdf_parser.factory.make_pdf_parser_service") as mock_pdf,
-        patch("src.services.ollama.client.OllamaClient") as mock_ollama,
+        patch("src.main.make_database") as mock_make_db,
+        patch("src.main.make_opensearch_client") as mock_make_os,
+        patch("src.main.make_arxiv_client") as mock_make_arxiv,
+        patch("src.main.make_pdf_parser_service") as mock_make_pdf,
+        patch("src.main.make_embeddings_service") as mock_make_embeddings,
+        patch("src.main.make_ollama_client") as mock_make_ollama,
+        patch("src.main.make_langfuse_tracer") as mock_make_langfuse,
+        patch("src.main.make_cache_client") as mock_make_cache,
+        patch("src.main.make_telegram_service") as mock_make_telegram,
         patch("src.repositories.paper.PaperRepository.get_by_arxiv_id") as mock_get_by_id,
     ):
-        # Mock startup to do nothing
-        mock_startup.return_value = None
+        # Mock database
+        mock_db = MagicMock()
+        mock_db.get_session.return_value.__enter__.return_value = MagicMock()
+        mock_db.get_session.return_value.__exit__.return_value = None
+        mock_make_db.return_value = mock_db
 
-        # Mock get_session to return a mock session
-        mock_session = MagicMock()
-        mock_get_session.return_value.__enter__.return_value = mock_session
-        mock_get_session.return_value.__exit__.return_value = None
+        # Mock OpenSearch
+        mock_os = MagicMock()
+        mock_os.health_check.return_value = True
+        mock_os.setup_indices.return_value = {"hybrid_index": True}
+        mock_os.client.count.return_value = {"count": 10}
+        
+        # Unified search mock returning sample hit
+        mock_os.search_unified.return_value = {
+            "total": 1,
+            "hits": [{
+                "arxiv_id": "2301.00001",
+                "title": "Test Paper",
+                "chunk_text": "This is a test paper.",
+                "score": 1.0,
+                "abstract": "This is a test paper abstract."
+            }]
+        }
+        mock_make_os.return_value = mock_os
 
-        # Mock repository methods to return None (not found) by default
+        # Mock ArXiv
+        mock_arxiv = MagicMock()
+        mock_make_arxiv.return_value = mock_arxiv
+
+        # Mock PDF Parser
+        mock_pdf = MagicMock()
+        mock_make_pdf.return_value = mock_pdf
+
+        # Mock Embeddings
+        mock_embeddings = AsyncMock()
+        mock_embeddings.embed_query.return_value = [0.1] * 1024
+        mock_make_embeddings.return_value = mock_embeddings
+
+        # Mock Ollama
+        mock_ollama = AsyncMock()
+        mock_ollama.generate_rag_answer.return_value = {"answer": "Mocked answer", "done": True}
+        
+        async def mock_generate_stream(*args, **kwargs):
+            yield {"response": "Mocked", "done": False}
+            yield {"response": " answer", "done": True}
+        mock_ollama.generate_rag_answer_stream = mock_generate_stream
+        mock_make_ollama.return_value = mock_ollama
+
+        # Mock Langfuse
+        mock_langfuse = MagicMock()
+        mock_make_langfuse.return_value = mock_langfuse
+
+        # Mock Cache
+        mock_make_cache.return_value = None
+
+        # Mock Telegram
+        mock_make_telegram.return_value = None
+
+        # Mock repository
         mock_get_by_id.return_value = None
-
-        # Set up other mock return values
-        mock_os.return_value = AsyncMock()
-        mock_arxiv.return_value = AsyncMock()
-        mock_pdf.return_value = AsyncMock()
-        mock_ollama.return_value = AsyncMock()
 
         async with LifespanManager(app) as manager:
             async with AsyncClient(transport=ASGITransport(app=manager.app), base_url="http://test") as client:

@@ -110,16 +110,59 @@ async def stream_response(
 def create_gradio_interface():
     """Create and configure the Gradio interface"""
 
+    custom_css = """
+    body, .gradio-container {
+        background-color: #f9f7f3 !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        color: #202020 !important;
+    }
+    h1, h2, h3 {
+        font-family: 'Bricolage Grotesque', 'Arial Black', sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -1px !important;
+        color: #202020 !important;
+    }
+    button.primary, .primary-btn {
+        background-color: #ea2804 !important;
+        color: #ffffff !important;
+        border-radius: 9999px !important;
+        font-weight: 600 !important;
+        border: none !important;
+        transition: background-color 0.15s ease !important;
+    }
+    button.primary:hover, .primary-btn:hover {
+        background-color: #c01f00 !important;
+    }
+    input, textarea, select, .selected {
+        border-radius: 16px !important;
+        border: 1px solid #202020 !important;
+        background-color: #ffffff !important;
+        color: #202020 !important;
+    }
+    .response-markdown {
+        background-color: #ffffff !important;
+        border: 1px solid rgba(32,32,32,0.12) !important;
+        border-radius: 10px !important;
+        padding: 16px !important;
+    }
+    code, pre {
+        font-family: 'JetBrains Mono', monospace !important;
+        background-color: #202020 !important;
+        color: #fcfcfc !important;
+    }
+    """
+
     with gr.Blocks(
-        title="arXiv Paper Curator - RAG Chat",
-        theme=gr.themes.Soft(),
+        title="arXiv Paper Curator Console - RAG",
+        theme=gr.themes.Soft(primary_hue="orange", secondary_hue="gray"),
+        css=custom_css,
     ) as interface:
         gr.Markdown(
             """
-            # 🔬 arXiv Paper Curator - RAG Chat
+            # 🔬 arXiv Paper Curator Console
             
-            Ask questions about machine learning and AI research papers from arXiv.
-            The system will search through indexed papers and provide answers with sources.
+            Interactive streaming console for querying the production RAG index.
+            Integrates BM25 keyword matching with Jina vector embeddings and local LLM generation.
             """
         )
 
