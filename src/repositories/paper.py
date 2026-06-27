@@ -23,6 +23,10 @@ class PaperRepository:
         stmt = select(Paper).where(Paper.arxiv_id == arxiv_id)
         return self.session.scalar(stmt)
 
+    def get_by_content_hash(self, content_hash: str) -> Optional[Paper]:
+        stmt = select(Paper).where(Paper.content_hash == content_hash)
+        return self.session.scalar(stmt)
+
     def get_by_id(self, paper_id: UUID) -> Optional[Paper]:
         stmt = select(Paper).where(Paper.id == paper_id)
         return self.session.scalar(stmt)
@@ -33,6 +37,10 @@ class PaperRepository:
 
     def get_count(self) -> int:
         stmt = select(func.count(Paper.id))
+        return self.session.scalar(stmt) or 0
+
+    def get_processed_count(self) -> int:
+        stmt = select(func.count(Paper.id)).where(Paper.pdf_processed == True)
         return self.session.scalar(stmt) or 0
 
     def get_processed_papers(self, limit: int = 100, offset: int = 0) -> List[Paper]:
@@ -81,6 +89,47 @@ class PaperRepository:
         self.session.commit()
         self.session.refresh(paper)
         return paper
+
+    def get_category_trends(self, category: str | None = None, months_back: int = 12) -> list[dict]:
+        """Return monthly paper counts grouped by category."""
+        from datetime import datetime, timedelta, timezone
+
+        from sqlalchemy import String, cast, func
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=months_back * 30)
+
+        category_col = Paper.categories
+        month_expr = func.date_trunc("month", Paper.published_date).label("month")
+
+        stmt = (
+            select(
+                month_expr,
+                func.jsonb_array_elements_text(category_col).label("category"),
+                func.count(Paper.id).label("count"),
+            )
+            .where(Paper.published_date >= cutoff)
+            .group_by(month_expr, func.jsonb_array_elements_text(category_col))
+            .order_by(month_expr.desc())
+        )
+
+        if category:
+            stmt = stmt.having(func.jsonb_array_elements_text(category_col) == category)
+
+        rows = self.session.execute(stmt).all()
+        return [
+            {
+                "month": row.month.strftime("%Y-%m") if row.month else "unknown",
+                "category": row.category,
+                "count": row.count,
+            }
+            for row in rows
+        ]
+
+    def get_papers_citing(self, arxiv_id: str) -> List[Paper]:
+        """Get papers whose references list contains the given arxiv_id."""
+        stmt = select(Paper).where(Paper.references.isnot(None))
+        papers = list(self.session.scalars(stmt))
+        return [p for p in papers if isinstance(p.references, list) and arxiv_id in p.references]
 
     def upsert(self, paper_create: PaperCreate) -> Paper:
         # Check if paper already exists

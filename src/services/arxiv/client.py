@@ -21,6 +21,14 @@ class ArxivClient:
     def __init__(self, settings: ArxivSettings):
         self._settings = settings
         self._last_request_time: Optional[float] = None
+        self._client: Optional[httpx.AsyncClient] = None
+        self._lock = asyncio.Lock()
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create a shared httpx client."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self.timeout_seconds)
+        return self._client
 
     @cached_property
     def pdf_cache_dir(self) -> Path:
@@ -104,19 +112,19 @@ class ArxivClient:
         try:
             logger.info(f"Fetching {max_results} {self.search_category} papers from arXiv")
 
-            # Add rate limiting delay between all requests (arXiv recommends 3 seconds)
-            if self._last_request_time is not None:
-                time_since_last = time.time() - self._last_request_time
-                if time_since_last < self.rate_limit_delay:
-                    sleep_time = self.rate_limit_delay - time_since_last
-                    await asyncio.sleep(sleep_time)
+            # Thread-safe rate limiting
+            async with self._lock:
+                if self._last_request_time is not None:
+                    time_since_last = time.time() - self._last_request_time
+                    if time_since_last < self.rate_limit_delay:
+                        sleep_time = self.rate_limit_delay - time_since_last
+                        await asyncio.sleep(sleep_time)
+                self._last_request_time = time.time()
 
-            self._last_request_time = time.time()
-
-            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-                response = await client.get(url)
-                response.raise_for_status()
-                xml_data = response.text
+            client = await self._get_client()
+            response = await client.get(url)
+            response.raise_for_status()
+            xml_data = response.text
 
             papers = self._parse_response(xml_data)
             logger.info(f"Fetched {len(papers)} papers")
@@ -153,16 +161,6 @@ class ArxivClient:
 
         Returns:
             List of ArxivPaper objects matching the search query
-
-        Examples:
-            # Papers from last 30 days
-            "cat:cs.AI AND submittedDate:[20240101 TO *]"
-
-            # Papers by specific author
-            "au:LeCun AND cat:cs.AI"
-
-            # Papers with specific keywords in title
-            "ti:transformer AND cat:cs.AI"
         """
         if max_results is None:
             max_results = self.max_results
@@ -179,19 +177,19 @@ class ArxivClient:
         url = f"{self.base_url}?{urlencode(params, quote_via=quote, safe=safe)}"
 
         try:
-            # Add rate limiting delay between all requests (arXiv recommends 3 seconds)
-            if self._last_request_time is not None:
-                time_since_last = time.time() - self._last_request_time
-                if time_since_last < self.rate_limit_delay:
-                    sleep_time = self.rate_limit_delay - time_since_last
-                    await asyncio.sleep(sleep_time)
+            # Thread-safe rate limiting
+            async with self._lock:
+                if self._last_request_time is not None:
+                    time_since_last = time.time() - self._last_request_time
+                    if time_since_last < self.rate_limit_delay:
+                        sleep_time = self.rate_limit_delay - time_since_last
+                        await asyncio.sleep(sleep_time)
+                self._last_request_time = time.time()
 
-            self._last_request_time = time.time()
-
-            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-                response = await client.get(url)
-                response.raise_for_status()
-                xml_data = response.text
+            client = await self._get_client()
+            response = await client.get(url)
+            response.raise_for_status()
+            xml_data = response.text
 
             papers = self._parse_response(xml_data)
             logger.info(f"Query returned {len(papers)} papers")
@@ -226,10 +224,10 @@ class ArxivClient:
         url = f"{self.base_url}?{urlencode(params, quote_via=quote, safe=safe)}"
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                response.raise_for_status()
-                xml_data = response.text
+            client = await self._get_client()
+            response = await client.get(url)
+            response.raise_for_status()
+            xml_data = response.text
 
             papers = self._parse_response(xml_data)
 
@@ -455,12 +453,12 @@ class ArxivClient:
 
         for attempt in range(max_retries):
             try:
-                async with httpx.AsyncClient(timeout=float(self.timeout_seconds)) as client:
-                    async with client.stream("GET", url) as response:
-                        response.raise_for_status()
-                        with open(path, "wb") as f:
-                            async for chunk in response.aiter_bytes():
-                                f.write(chunk)
+                client = await self._get_client()
+                async with client.stream("GET", url) as response:
+                    response.raise_for_status()
+                    with open(path, "wb") as f:
+                        async for chunk in response.aiter_bytes():
+                            f.write(chunk)
                 logger.info(f"Successfully downloaded to {path.name}")
                 return True
 
@@ -491,3 +489,8 @@ class ArxivClient:
             path.unlink()
 
         return False
+
+    async def close(self):
+        """Close the HTTP client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()

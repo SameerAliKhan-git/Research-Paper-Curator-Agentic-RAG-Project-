@@ -1,16 +1,48 @@
 import json
 import logging
-from typing import Iterator
+import math
+import os
+import tempfile
+import zipfile
+from pathlib import Path
+from typing import Iterator, List
 
 import gradio as gr
 import httpx
+import src.config
+
+# Patch the database URL environment variable to point to localhost instead of postgres host when running on host machine
+db_url = os.environ.get("POSTGRES_DATABASE_URL") or "postgresql+psycopg2://rag_user:rag_password@postgres:5432/rag_db"
+if "postgres:5432" in db_url:
+    os.environ["POSTGRES_DATABASE_URL"] = db_url.replace("postgres:5432", "localhost:5432")
+    src.config._settings_cache = None
+
+from src.config import get_settings
+from src.db.factory import make_database
+from src.models.researcher import DailyBriefing, ResearcherInterest
 
 logger = logging.getLogger(__name__)
 
 # Configuration
-API_BASE_URL = "http://localhost:8000/api/v1"
-DEFAULT_MODEL = "llama3.2:1b"
-AVAILABLE_CATEGORIES = ["cs.AI", "cs.LG"]
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "llama3.2:1b")
+AVAILABLE_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.CV"]
+
+
+def format_source_link(source) -> str:
+    """Format a source item (either string or dict) into a markdown link."""
+    if isinstance(source, dict):
+        url = source.get("url", "#")
+        title = source.get("title") or source.get("arxiv_id") or "Source Paper"
+        if url == "#" or not url:
+            return f"Uploaded Paper: {title}"
+        return f"[{title}]({url})"
+    else:
+        url = str(source)
+        title = url.split("/")[-1] if "/" in url else "Source Link"
+        if url == "#" or not url:
+            return "Uploaded Paper"
+        return f"[{title}]({url})"
 
 
 async def stream_response(
@@ -61,7 +93,6 @@ async def stream_response(
                             # Handle streaming chunks
                             if "chunk" in data:
                                 current_answer += data["chunk"]
-                                # Format response with sources if we have them
                                 formatted_response = current_answer
                                 if sources or chunks_used:
                                     formatted_response += f"\n\n**Search Info:**\n"
@@ -69,8 +100,8 @@ async def stream_response(
                                     formatted_response += f"- Chunks used: {chunks_used}\n"
                                     if sources:
                                         formatted_response += f"- Sources: {len(sources)} papers\n"
-                                        for i, source in enumerate(sources[:3], 1):  # Show first 3 sources
-                                            formatted_response += f"  {i}. [{source.split('/')[-1]}]({source})\n"
+                                        for i, source in enumerate(sources[:3], 1):
+                                            formatted_response += f"  {i}. {format_source_link(source)}\n"
                                         if len(sources) > 3:
                                             formatted_response += f"  ... and {len(sources) - 3} more\n"
 
@@ -82,7 +113,6 @@ async def stream_response(
                                 if final_answer != current_answer:
                                     current_answer = final_answer
 
-                                # Final formatted response
                                 formatted_response = current_answer
                                 if sources or chunks_used:
                                     formatted_response += f"\n\n**Search Info:**\n"
@@ -91,7 +121,7 @@ async def stream_response(
                                     if sources:
                                         formatted_response += f"- Sources: {len(sources)} papers\n"
                                         for i, source in enumerate(sources[:3], 1):
-                                            formatted_response += f"  {i}. [{source.split('/')[-1]}]({source})\n"
+                                            formatted_response += f"  {i}. {format_source_link(source)}\n"
                                         if len(sources) > 3:
                                             formatted_response += f"  ... and {len(sources) - 3} more\n"
 
@@ -99,7 +129,7 @@ async def stream_response(
                                 break
 
                         except json.JSONDecodeError:
-                            continue  # Skip malformed JSON lines
+                            continue
 
     except httpx.RequestError as e:
         yield f"Connection error: {str(e)}\nMake sure the API server is running at {API_BASE_URL}"
@@ -107,130 +137,286 @@ async def stream_response(
         yield f"Unexpected error: {str(e)}"
 
 
+# Database Helpers for Tab 3 (Briefings & Interests)
+def get_interests() -> List[str]:
+    try:
+        db = make_database()
+        with db.get_session() as session:
+            interests = session.query(ResearcherInterest).order_by(ResearcherInterest.keyword).all()
+            return [i.keyword for i in interests]
+    except Exception as e:
+        logger.error(f"Failed to get interests: {e}")
+        return []
+
+
+def add_interest(keyword: str) -> str:
+    keyword = keyword.strip()
+    if not keyword:
+        return "Keyword cannot be empty."
+    try:
+        db = make_database()
+        with db.get_session() as session:
+            existing = session.query(ResearcherInterest).filter_by(keyword=keyword).first()
+            if existing:
+                return f"Keyword '{keyword}' already exists."
+            interest = ResearcherInterest(keyword=keyword)
+            session.add(interest)
+            session.commit()
+        return f"Successfully added keyword '{keyword}'."
+    except Exception as e:
+        logger.error(f"Failed to add interest: {e}")
+        return f"Error: {e}"
+
+
+def remove_interest(keyword: str) -> str:
+    keyword = keyword.strip()
+    if not keyword:
+        return "Keyword cannot be empty."
+    try:
+        db = make_database()
+        with db.get_session() as session:
+            interest = session.query(ResearcherInterest).filter_by(keyword=keyword).first()
+            if not interest:
+                return f"Keyword '{keyword}' not found."
+            session.delete(interest)
+            session.commit()
+        return f"Successfully removed keyword '{keyword}'."
+    except Exception as e:
+        logger.error(f"Failed to remove interest: {e}")
+        return f"Error: {e}"
+
+
+def get_briefings_md() -> str:
+    try:
+        db = make_database()
+        with db.get_session() as session:
+            briefings = session.query(DailyBriefing).order_by(DailyBriefing.created_at.desc()).limit(20).all()
+            if not briefings:
+                return "No daily briefings available yet. The scheduled Airflow daily_arxiv_briefing DAG generates these."
+
+            md = ""
+            for b in briefings:
+                date_str = b.published_date.strftime("%Y-%m-%d") if b.published_date else "Unknown Date"
+                score_str = f"{b.score:.2f}" if b.score else "N/A"
+                arxiv_url = f"https://arxiv.org/abs/{b.arxiv_id}"
+                md += f"### [{b.title}]({arxiv_url}) (arXiv ID: {b.arxiv_id})\n"
+                md += f"- **Published Date:** {date_str}\n"
+                md += f"- **Relevance Score:** {score_str}\n"
+                md += f"#### Technical Briefing Summary:\n{b.summary}\n\n---\n\n"
+            return md
+    except Exception as e:
+        logger.error(f"Failed to get briefings: {e}")
+        return f"Error loading briefings: {e}"
+
+
+# LaTeX related work generator helper
+async def compile_latex_zip(arxiv_ids_str: str, model: str) -> tuple[str, str]:
+    arxiv_ids = [aid.strip() for aid in arxiv_ids_str.split(",") if aid.strip()]
+    if not arxiv_ids:
+        return "Error: Please enter at least one arXiv ID.", None
+
+    payload = {"arxiv_ids": arxiv_ids, "model": model}
+    try:
+        url = f"{API_BASE_URL}/literature/related-work"
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, json=payload)
+            if response.status_code != 200:
+                detail = "Unknown error"
+                try:
+                    detail = response.json().get("detail", detail)
+                except Exception:
+                    pass
+                return f"Error generating related work: {detail}", None
+
+            # Save ZIP content to a temporary directory
+            temp_dir = Path("data/latex_builds")
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            zip_path = temp_dir / "related_work_latex.zip"
+            zip_path.write_bytes(response.content)
+
+            # Extract the related_work.tex content for UI display
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                tex_content = zf.read("related_work.tex").decode("utf-8")
+
+            return tex_content, str(zip_path)
+
+    except Exception as e:
+        logger.error(f"Failed compile_latex_zip: {e}")
+        return f"Error: {e}", None
+
+
+# BibTeX fetcher helper
+async def fetch_bibtex(arxiv_id: str) -> str:
+    arxiv_id = arxiv_id.strip()
+    if not arxiv_id:
+        return "Please enter a valid arXiv ID."
+    try:
+        url = f"{API_BASE_URL}/papers/{arxiv_id}/bibtex"
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(url)
+            if response.status_code != 200:
+                detail = "Unknown error"
+                try:
+                    detail = response.json().get("detail", detail)
+                except Exception:
+                    pass
+                return f"Error: {detail} (Make sure the paper is ingested first)"
+            return response.json().get("bibtex", "")
+    except Exception as e:
+        return f"Error: {e}"
+
+
 def create_gradio_interface():
-    """Create and configure the Gradio interface"""
+    """Create and configure the new premium tabbed interface"""
 
     custom_css = """
     body, .gradio-container {
-        background-color: #f9f7f3 !important;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-        color: #202020 !important;
+        background-color: #0b0f19 !important;
+        font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+        color: #e2e8f0 !important;
     }
-    h1, h2, h3 {
-        font-family: 'Bricolage Grotesque', 'Arial Black', sans-serif !important;
-        font-weight: 700 !important;
-        letter-spacing: -1px !important;
-        color: #202020 !important;
+    h1, h2, h3, h4 {
+        font-family: 'Outfit', sans-serif !important;
+        background: linear-gradient(135deg, #ff7e5f, #feb47b) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        font-weight: 800 !important;
     }
-    button.primary, .primary-btn {
-        background-color: #ea2804 !important;
+    .custom-card {
+        background-color: #151f32 !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+    }
+    .primary-btn {
+        background: linear-gradient(135deg, #ea2804, #ff5f43) !important;
         color: #ffffff !important;
         border-radius: 9999px !important;
         font-weight: 600 !important;
         border: none !important;
-        transition: background-color 0.15s ease !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
     }
-    button.primary:hover, .primary-btn:hover {
-        background-color: #c01f00 !important;
-    }
-    input, textarea, select, .selected {
-        border-radius: 16px !important;
-        border: 1px solid #202020 !important;
-        background-color: #ffffff !important;
-        color: #202020 !important;
-    }
-    .response-markdown {
-        background-color: #ffffff !important;
-        border: 1px solid rgba(32,32,32,0.12) !important;
-        border-radius: 10px !important;
-        padding: 16px !important;
+    .primary-btn:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 10px 15px -3px rgba(234, 40, 4, 0.3) !important;
     }
     code, pre {
         font-family: 'JetBrains Mono', monospace !important;
-        background-color: #202020 !important;
-        color: #fcfcfc !important;
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
     }
     """
 
     with gr.Blocks(
         title="arXiv Paper Curator Console - RAG",
-        theme=gr.themes.Soft(primary_hue="orange", secondary_hue="gray"),
+        theme=gr.themes.Default(primary_hue="orange", secondary_hue="slate"),
         css=custom_css,
     ) as interface:
         gr.Markdown(
             """
-            # 🔬 arXiv Paper Curator Console
-            
-            Interactive streaming console for querying the production RAG index.
-            Integrates BM25 keyword matching with Jina vector embeddings and local LLM generation.
+            # 🔬 Production-Grade Agentic RAG Console
+            *Built for senior researchers, scholars, and AI engineers*
             """
         )
 
-        with gr.Row():
-            with gr.Column(scale=3):
-                query_input = gr.Textbox(
-                    label="Your Question", placeholder="What are transformers in machine learning?", lines=2, max_lines=5
+        with gr.Tabs():
+            # TAB 1: Chat Console
+            with gr.Tab("💬 RAG Chat Console"):
+                with gr.Row():
+                    with gr.Column(scale=3):
+                        query_input = gr.Textbox(
+                            label="Researcher Query",
+                            placeholder="State your question, e.g., 'What are the main architectural limits of transformers?'",
+                            lines=2,
+                        )
+                        submit_btn = gr.Button("Execute RAG Pipeline", variant="primary", size="lg", elem_classes=["primary-btn"])
+                        response_output = gr.Markdown(label="Answer", value="Ask a question to get started!", height=400)
+
+                    with gr.Column(scale=1):
+                        with gr.Group(elem_classes=["custom-card"]):
+                            gr.Markdown("### ⚙️ Pipeline Configurations")
+                            top_k = gr.Slider(minimum=1, maximum=10, value=3, step=1, label="Chunks to Retrieve")
+                            use_hybrid = gr.Checkbox(value=True, label="Hybrid Search (BM25 + Vector)")
+                            model_choice = gr.Dropdown(
+                                choices=["llama3.2:1b", "llama3.2:3b", "llama3.1:8b"], value=DEFAULT_MODEL, label="LLM Model"
+                            )
+                            categories = gr.Textbox(label="arXiv Categories", placeholder="cs.AI, cs.LG, cs.CL")
+
+                        # Quick BibTeX Retrieval Tool
+                        with gr.Group(elem_classes=["custom-card"]):
+                            gr.Markdown("### 📄 Quick BibTeX Citation")
+                            bibtex_arxiv_id = gr.Textbox(label="arXiv ID", placeholder="1706.03762")
+                            fetch_bib_btn = gr.Button("Get BibTeX")
+                            bibtex_output = gr.Code(label="BibTeX Citation", language=None, interactive=False)
+
+                # Examples
+                gr.Examples(
+                    examples=[
+                        ["What are transformers in machine learning?", 3, True, "llama3.2:1b", "cs.AI, cs.LG"],
+                        ["How does retrieval-augmented generation prevent hallucination?", 4, True, "llama3.2:1b", "cs.AI"],
+                    ],
+                    inputs=[query_input, top_k, use_hybrid, model_choice, categories],
                 )
 
-            with gr.Column(scale=1):
-                submit_btn = gr.Button("Ask Question", variant="primary", size="lg")
+            # TAB 2: LaTeX Related Work Generator
+            with gr.Tab("📝 LaTeX Literature Review Synthesizer"):
+                gr.Markdown(
+                    """
+                    ### 📂 Generate LaTeX Comparative Analysis
+                    Provide a comma-separated list of ingested arXiv IDs. The agent will fetch their abstracts 
+                    and synthesize a complete, professional **Related Work** section (`.tex`) and its matching bibliography (`.bib`) file.
+                    """
+                )
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        latex_arxiv_ids = gr.Textbox(
+                            label="arXiv IDs (comma-separated)", placeholder="1706.03762, 2005.11401, 2106.09685"
+                        )
+                        latex_model = gr.Dropdown(
+                            choices=["llama3.2:1b", "llama3.2:3b", "llama3.1:8b"], value=DEFAULT_MODEL, label="Synthesizer Model"
+                        )
+                        gen_latex_btn = gr.Button("Generate Compile-Ready LaTeX", variant="primary", elem_classes=["primary-btn"])
 
-        with gr.Row():
-            with gr.Column():
-                with gr.Accordion("Advanced Options", open=False):
-                    top_k = gr.Slider(
-                        minimum=1,
-                        maximum=10,
-                        value=3,
-                        step=1,
-                        label="Number of chunks to retrieve",
-                        info="More chunks = more context but slower generation",
-                    )
+                    with gr.Column(scale=3):
+                        latex_preview = gr.Textbox(label="LaTeX Code Preview", lines=12, max_lines=25, interactive=False)
+                        download_zip = gr.File(label="Download Compile-Ready ZIP (.tex + .bib)")
 
-                    use_hybrid = gr.Checkbox(
-                        value=True,
-                        label="Use hybrid search (BM25 + vector embeddings)",
-                        info="Usually better results than keyword-only search",
-                    )
+            # TAB 3: Daily Briefings & Profiles
+            with gr.Tab("📅 Daily arXiv Briefings"):
+                gr.Markdown(
+                    """
+                    ### 🔍 Curated Daily Preprints
+                    Ranked and generated dynamically via the **Airflow scheduler** based on your specific researcher interest profile keywords.
+                    """
+                )
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        with gr.Group(elem_classes=["custom-card"]):
+                            gr.Markdown("### 🏷️ My Interest Profile")
+                            current_keywords = gr.Dropdown(
+                                label="Current Interest Keywords", choices=get_interests(), value=None, interactive=True
+                            )
+                            refresh_interests_btn = gr.Button("Refresh Profile", size="sm")
 
-                    model_choice = gr.Dropdown(
-                        choices=["llama3.2:1b", "llama3.2:3b", "llama3.1:8b", "qwen2.5:7b"],
-                        value=DEFAULT_MODEL,
-                        label="LLM Model",
-                        info="Larger models may give better answers but are slower",
-                    )
+                            new_keyword = gr.Textbox(label="Add New Keyword", placeholder="e.g. 'Constitutional AI'")
+                            add_keyword_btn = gr.Button("Add Keyword", variant="primary", size="sm")
 
-                    categories = gr.Textbox(
-                        label="arXiv Categories (optional)",
-                        placeholder="cs.AI, cs.LG, cs.CL",
-                        info="Comma-separated. Leave empty for all categories",
-                    )
+                            remove_keyword_btn = gr.Button("Remove Selected Keyword", variant="stop", size="sm")
 
-        response_output = gr.Markdown(
-            label="Answer", value="Ask a question to get started!", height=400, elem_classes=["response-markdown"]
-        )
+                            action_status = gr.Textbox(label="Status", interactive=False)
 
-        # Examples
-        gr.Examples(
-            examples=[
-                ["What are transformers in machine learning?", 3, True, "llama3.2:1b", "cs.AI, cs.LG"],
-                ["How do convolutional neural networks work?", 5, True, "llama3.2:1b", "cs.CV, cs.LG"],
-                ["What is attention mechanism in deep learning?", 4, False, "llama3.2:1b", "cs.AI"],
-                ["Explain reinforcement learning algorithms", 3, True, "llama3.2:1b", "cs.LG, cs.AI"],
-                ["What are the latest developments in NLP?", 5, True, "llama3.2:1b", "cs.CL"],
-            ],
-            inputs=[query_input, top_k, use_hybrid, model_choice, categories],
-        )
+                    with gr.Column(scale=3):
+                        gr.Markdown("### 📰 Daily Briefing Feed (Latest)")
+                        briefings_display = gr.Markdown(value=get_briefings_md(), elem_classes=["response-markdown"])
+                        refresh_feed_btn = gr.Button("Refresh Briefings Feed", elem_classes=["primary-btn"])
 
-        # Handle submission
+        # Chat interaction setup
         submit_btn.click(
             fn=stream_response,
             inputs=[query_input, top_k, use_hybrid, model_choice, categories],
             outputs=[response_output],
             show_progress=True,
         )
-
-        # Handle Enter key
         query_input.submit(
             fn=stream_response,
             inputs=[query_input, top_k, use_hybrid, model_choice, categories],
@@ -238,14 +424,43 @@ def create_gradio_interface():
             show_progress=True,
         )
 
+        # BibTeX button click
+        fetch_bib_btn.click(fn=fetch_bibtex, inputs=[bibtex_arxiv_id], outputs=[bibtex_output])
+
+        # LaTeX button click
+        gen_latex_btn.click(
+            fn=compile_latex_zip,
+            inputs=[latex_arxiv_ids, latex_model],
+            outputs=[latex_preview, download_zip],
+            show_progress=True,
+        )
+
+        # Interest profile managers
+        def add_interest_callback(kw):
+            status = add_interest(kw)
+            return status, gr.Dropdown(choices=get_interests(), value=None)
+
+        def remove_interest_callback(kw):
+            status = remove_interest(kw)
+            return status, gr.Dropdown(choices=get_interests(), value=None)
+
+        def refresh_interests_callback():
+            return gr.Dropdown(choices=get_interests(), value=None)
+
+        add_keyword_btn.click(fn=add_interest_callback, inputs=[new_keyword], outputs=[action_status, current_keywords])
+
+        remove_keyword_btn.click(
+            fn=remove_interest_callback, inputs=[current_keywords], outputs=[action_status, current_keywords]
+        )
+
+        refresh_interests_btn.click(fn=refresh_interests_callback, outputs=[current_keywords])
+
+        refresh_feed_btn.click(fn=get_briefings_md, outputs=[briefings_display])
+
         gr.Markdown(
             """
             ---
-            
-            **Note**: Make sure the RAG API server is running at `http://localhost:8000` before using this interface.
-            
-            **Categories**: cs.AI (Artificial Intelligence), cs.LG (Machine Learning), cs.CL (Computational Linguistics), 
-            cs.CV (Computer Vision), cs.NE (Neural Networks), stat.ML (Statistics - Machine Learning)
+            *Powered by Redis cache, Jina Embeddings, OpenSearch hybrid scoring, and local Ollama inference.*
             """
         )
 
@@ -253,20 +468,31 @@ def create_gradio_interface():
 
 
 def main():
-    """Main entry point for the Gradio app"""
-    print("🚀 Starting arXiv Paper Curator Gradio Interface...")
+    import os
+
+    print("🚀 Starting Production-Grade arXiv RAG Gradio Interface...")
     print(f"📡 API Base URL: {API_BASE_URL}")
+
+    username = os.environ.get("GRADIO_USERNAME")
+    password = os.environ.get("GRADIO_PASSWORD")
 
     interface = create_gradio_interface()
 
-    # Launch the interface
-    interface.launch(
-        server_name="0.0.0.0",
-        server_port=7861,  # Changed to avoid port conflict
-        share=False,
-        show_error=True,
-        quiet=False,
-    )
+    launch_kwargs = {
+        "server_name": "0.0.0.0",
+        "server_port": 7861,
+        "share": False,
+        "show_error": True,
+        "quiet": False,
+    }
+
+    if username and password:
+        print(f"🔒 Gradio authentication enabled (User: {username})")
+        launch_kwargs["auth"] = (username, password)
+    else:
+        print("⚠️ Gradio authentication disabled. Set GRADIO_USERNAME and GRADIO_PASSWORD env vars to secure.")
+
+    interface.launch(**launch_kwargs)
 
 
 if __name__ == "__main__":

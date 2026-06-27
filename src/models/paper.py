@@ -1,13 +1,17 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from src.db.interfaces.postgresql import Base
 
 
 class Paper(Base):
     __tablename__ = "papers"
+    __table_args__ = (
+        Index("ix_papers_pdf_processed", "pdf_processed"),
+        Index("ix_papers_published_date", "published_date"),
+    )
 
     # Core arXiv metadata
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -29,6 +33,9 @@ class Paper(Base):
     parser_metadata = Column(JSON, nullable=True)
     pdf_processed = Column(Boolean, default=False, nullable=False)
     pdf_processing_date = Column(DateTime, nullable=True)
+
+    # Content deduplication
+    content_hash = Column(String, nullable=True, index=True)
 
     # Timestamps
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

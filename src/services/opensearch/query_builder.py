@@ -21,6 +21,7 @@ class QueryBuilder:
         track_total_hits: bool = True,
         latest_papers: bool = False,
         search_chunks: bool = False,
+        tenant_id: Optional[str] = None,
     ):
         """Initialize query builder.
 
@@ -32,6 +33,7 @@ class QueryBuilder:
         :param track_total_hits: Whether to track total hits accurately
         :param latest_papers: Sort by publication date instead of relevance
         :param search_chunks: Whether searching chunks (True) or papers (False)
+        :param tenant_id: Optional tenant isolation identifier
         """
         self.query = query
         self.size = size
@@ -40,6 +42,7 @@ class QueryBuilder:
         self.track_total_hits = track_total_hits
         self.latest_papers = latest_papers
         self.search_chunks = search_chunks
+        self.tenant_id = tenant_id
 
         if fields is None:
             if search_chunks:
@@ -118,6 +121,9 @@ class QueryBuilder:
 
         if self.categories:
             filters.append({"terms": {"categories": self.categories}})
+
+        if hasattr(self, "tenant_id") and self.tenant_id:
+            filters.append({"term": {"tenant_id": self.tenant_id}})
 
         return filters
 

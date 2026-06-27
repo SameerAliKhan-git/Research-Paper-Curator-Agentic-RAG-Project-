@@ -3,6 +3,9 @@ from src.db.interfaces.base import BaseDatabase
 from src.db.interfaces.postgresql import PostgreSQLDatabase
 from src.schemas.database.config import PostgreSQLSettings
 
+# Import all models so Base.metadata includes their table definitions
+import src.models  # noqa: F401
+
 
 def make_database() -> BaseDatabase:
     """Factory function to create a database instance.
@@ -24,3 +27,4 @@ def make_database() -> BaseDatabase:
     database = PostgreSQLDatabase(config=config)
     database.startup()
     return database
+

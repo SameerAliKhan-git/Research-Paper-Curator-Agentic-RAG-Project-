@@ -1,4 +1,6 @@
+import json
 import logging
+import re
 from typing import Dict, List, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -100,6 +102,56 @@ def get_latest_context(messages: List) -> str:
     """
     for msg in reversed(messages):
         if isinstance(msg, ToolMessage):
-            return msg.content if hasattr(msg, "content") else ""
+            content = msg.content
+            if isinstance(content, list):
+                formatted_docs = []
+                for doc in content:
+                    if hasattr(doc, "page_content"):
+                        formatted_docs.append(doc.page_content)
+                    elif isinstance(doc, dict) and "page_content" in doc:
+                        formatted_docs.append(doc["page_content"])
+                    elif isinstance(doc, dict) and "chunk_text" in doc:
+                        formatted_docs.append(doc["chunk_text"])
+                    else:
+                        formatted_docs.append(str(doc))
+                return "\n\n".join(formatted_docs)
+            return str(content) if content is not None else ""
 
     return ""
+
+
+def parse_json_safely(text: str) -> dict:
+    """Extract and parse a JSON object from text content using regex boundary matches.
+
+    Allows tolerant parsing for small models which wrap JSON in markdown blocks
+    or include leading/trailing text.
+    """
+    if not text:
+        raise ValueError("Empty response text")
+
+    # Clean leading/trailing markdown code blocks if present
+    text_clean = text.strip()
+    if text_clean.startswith("```json"):
+        text_clean = text_clean[7:]
+    elif text_clean.startswith("```"):
+        text_clean = text_clean[3:]
+    if text_clean.endswith("```"):
+        text_clean = text_clean[:-3]
+    text_clean = text_clean.strip()
+
+    # Try standard json loads first
+    try:
+        return json.loads(text_clean)
+    except json.JSONDecodeError:
+        pass
+
+    # Regex search for outer brackets
+    match = re.search(r"\{.*\}", text_clean, re.DOTALL)
+    if not match:
+        raise ValueError("No JSON object bounds found in text")
+
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON substring: {match.group(0)}. Error: {e}")
+        raise

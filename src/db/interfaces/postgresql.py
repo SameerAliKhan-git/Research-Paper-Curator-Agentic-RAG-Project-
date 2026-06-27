@@ -4,8 +4,7 @@ from typing import Generator, Optional
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from src.db.interfaces.base import BaseDatabase
 from src.schemas.database.config import PostgreSQLSettings
 
@@ -26,10 +25,9 @@ class PostgreSQLDatabase(BaseDatabase):
     def startup(self) -> None:
         """Initialize the database connection."""
         try:
-            # Log connection attempt
-            logger.info(
-                f"Attempting to connect to PostgreSQL at: {self.config.database_url.split('@')[1] if '@' in self.config.database_url else 'localhost'}"
-            )
+            # Log connection attempt (sanitize credentials)
+            db_name = self.config.database_url.split("@")[-1].split("/")[-1] if "@" in self.config.database_url else "unknown"
+            logger.info(f"Attempting to connect to PostgreSQL database: {db_name}")
 
             self.engine = create_engine(
                 self.config.database_url,

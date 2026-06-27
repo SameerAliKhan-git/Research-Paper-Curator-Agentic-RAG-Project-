@@ -396,7 +396,10 @@ class MetadataFetcher:
             logger.info(f"Committed {stored_count} papers to database with full content storage")
         except Exception as e:
             logger.error(f"Failed to commit papers to database: {e}")
-            db_session.rollback()
+            try:
+                db_session.rollback()
+            except Exception:
+                pass
             stored_count = 0
 
         return stored_count

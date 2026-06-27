@@ -57,9 +57,24 @@ async def test_stream_endpoint_basic(client):
     assert response.status_code in [200, 500, 503]
 
     if response.status_code == 200:
-        assert "text/plain" in response.headers.get("content-type", "")
+        assert "text/event-stream" in response.headers.get("content-type", "")
 
 
 async def test_stream_endpoint_validation_errors(client):
     response = await client.post("/api/v1/stream", json={"query": "", "model": "llama3.2:3b"})
     assert response.status_code == 422
+
+
+async def test_ask_endpoint_with_auto_routing(client):
+    # Test auto routing trigger keyword for colpali
+    response = await client.post(
+        "/api/v1/ask", json={"query": "show me the layout of page 3", "model": "llama3.2:1b", "search_mode": "auto"}
+    )
+    assert response.status_code in [200, 500, 503]
+
+    # Test auto routing trigger keyword for web search
+    response = await client.post(
+        "/api/v1/ask", json={"query": "what is the latest news today?", "model": "llama3.2:1b", "search_mode": "auto"}
+    )
+    assert response.status_code in [200, 500, 503]
+

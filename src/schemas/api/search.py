@@ -42,7 +42,7 @@ class SearchHit(BaseModel):
 
     arxiv_id: str
     title: str
-    authors: Optional[str]
+    authors: Optional[str | List[str]] = None
     abstract: Optional[str]
     published_date: Optional[str]
     pdf_url: Optional[str]

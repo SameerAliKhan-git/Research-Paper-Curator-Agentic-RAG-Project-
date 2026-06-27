@@ -16,12 +16,8 @@ logger = logging.getLogger(__name__)
 class QueryRewriteOutput(BaseModel):
     """Structured output for query rewriting."""
 
-    rewritten_query: str = Field(
-        description="The improved query optimized for document retrieval"
-    )
-    reasoning: str = Field(
-        description="Brief explanation of how the query was improved"
-    )
+    rewritten_query: str = Field(description="The improved query optimized for document retrieval")
+    reasoning: str = Field(description="Brief explanation of how the query was improved")
 
 
 async def ainvoke_rewrite_query_step(
@@ -76,8 +72,8 @@ async def ainvoke_rewrite_query_step(
         )
         structured_llm = llm.with_structured_output(QueryRewriteOutput)
 
-        # Format prompt with original question
-        prompt = REWRITE_PROMPT.format(question=original_question)
+        # Format prompt - safe concatenation (no format injection)
+        prompt = REWRITE_PROMPT + "\n\nHere is the initial question:\n" + original_question
 
         logger.debug(f"Invoking LLM for query rewriting (model: {runtime.context.model_name})")
         llm_start = time.time()
@@ -96,14 +92,11 @@ async def ainvoke_rewrite_query_step(
         reasoning = result.reasoning
 
         llm_duration = time.time() - llm_start
-        logger.info(
-            f"Query rewritten in {llm_duration:.2f}s: "
-            f"'{original_question[:50]}...' -> '{rewritten_query[:50]}...'"
-        )
+        logger.info(f"Query rewritten in {llm_duration:.2f}s: '{original_question[:50]}...' -> '{rewritten_query[:50]}...'")
         logger.debug(f"Rewriting reasoning: {reasoning}")
 
     except Exception as e:
-        logger.error(f"Failed to rewrite query using LLM: {e}")
+        logger.error(f"Failed to rewrite query using LLM: {type(e).__name__}")
         logger.warning("Falling back to simple keyword expansion")
         # Fallback to simple expansion if LLM fails
         rewritten_query = f"{original_question} research paper arxiv machine learning"
@@ -123,7 +116,7 @@ async def ainvoke_rewrite_query_step(
                 "execution_time_ms": execution_time,
                 "original_length": len(original_question),
                 "rewritten_length": len(rewritten_query),
-                "llm_duration_seconds": llm_duration if 'llm_duration' in locals() else None,
+                "llm_duration_seconds": llm_duration if "llm_duration" in locals() else None,
             },
         )
 

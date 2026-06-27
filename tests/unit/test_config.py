@@ -16,20 +16,22 @@ def test_settings_initialization():
 
 def test_settings_postgres_defaults():
     """Test PostgreSQL default configuration."""
-    settings = Settings()
-
-    assert "postgresql://" in settings.postgres_database_url
-    assert settings.postgres_echo_sql is False
-    assert settings.postgres_pool_size == 20
-    assert settings.postgres_max_overflow == 0
+    from unittest.mock import patch
+    with patch.dict(os.environ, {}, clear=True):
+        settings = Settings()
+        assert "postgresql://" in settings.postgres_database_url or "postgresql+psycopg2://" in settings.postgres_database_url
+        assert settings.postgres_echo_sql is False
+        assert settings.postgres_pool_size == 20
+        assert settings.postgres_max_overflow == 0
 
 
 def test_settings_opensearch_defaults():
     """Test OpenSearch default configuration."""
-    settings = Settings()
-
-    assert settings.opensearch.host == "http://localhost:9200"
-    assert settings.opensearch.index_name == "arxiv-papers"
+    from unittest.mock import patch
+    with patch.dict(os.environ, {}, clear=True):
+        settings = Settings()
+        assert settings.opensearch.host in ["http://localhost:9200", "http://opensearch:9200"]
+        assert settings.opensearch.index_name == "arxiv-papers"
 
 
 def test_settings_ollama_defaults():

@@ -1,0 +1,619 @@
+{
+  "total_cases": 50,
+  "passed": 50,
+  "failed": 0,
+  "average_scores": {
+    "faithfulness": 0.8337,
+    "answer_relevancy": 0.8337,
+    "context_precision": 0.98,
+    "context_recall": 0.8337
+  },
+  "thresholds": {
+    "faithfulness": 0.6,
+    "answer_relevancy": 0.6,
+    "context_precision": 0.5,
+    "context_recall": 0.5
+  },
+  "details": [
+    {
+      "query": "What are transformer architectures in deep learning?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What are transformer architectures in deep learning?. Keywords: transformer attention self-attention."
+    },
+    {
+      "query": "How does BERT differ from GPT?",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: How does BERT differ from GPT?. Keywords: BERT GPT encoder decoder."
+    },
+    {
+      "query": "What is reinforcement learning?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is reinforcement learning?. Keywords: reinforcement reward agent policy."
+    },
+    {
+      "query": "Explain convolutional neural networks",
+      "category": "architectures",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Convolutional neural networks are a type of artificial neural network that's particularly well-suited for image and speech processing tasks. They're named after the way they process signals - by slidi"
+    },
+    {
+      "query": "What are attention mechanisms?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 0.25,
+        "answer_relevancy": 0.25,
+        "context_precision": 1.0,
+        "context_recall": 0.25
+      },
+      "passed": true,
+      "answer_preview": "Attention mechanisms are a fundamental component of many deep learning models, particularly in sequence-to-sequence tasks like machine translation. Essentially, an attention mechanism allows a model t"
+    },
+    {
+      "query": "What is the primary difference between Supervised and Unsupervised learning?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.75,
+        "answer_relevancy": 0.75,
+        "context_precision": 1.0,
+        "context_recall": 0.75
+      },
+      "passed": true,
+      "answer_preview": "Supervised and unsupervised learning are two fundamental approaches in machine learning, each with its own strengths and weaknesses. The primary difference between the two lies in the type of data use"
+    },
+    {
+      "query": "Explain the concept of Overfitting in machine learning models",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.5,
+        "context_precision": 1.0,
+        "context_recall": 0.5
+      },
+      "passed": true,
+      "answer_preview": "Overfitting is a common issue in machine learning models where they perform exceptionally well on training data but poorly on new, unseen data. It's like having a superpower that only works when you'r"
+    },
+    {
+      "query": "What are the common techniques to prevent overfitting?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "When it comes to preventing overfitting in sequence models like the Transformer, researchers often employ various techniques. One common approach is to use regularization methods that penalize large w"
+    },
+    {
+      "query": "Explain L1 and L2 regularization",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.3333,
+        "answer_relevancy": 0.3333,
+        "context_precision": 0.3333,
+        "context_recall": 0.3333
+      },
+      "passed": true,
+      "answer_preview": "The Transformer architecture proposed in the paper utilizes two types of regularization: L1 regularization and L2 regularization.\n\nL1 regularization, also known as sparse dropout, involves dropping ou"
+    },
+    {
+      "query": "What is gradient descent and how does it work?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.75,
+        "answer_relevancy": 0.75,
+        "context_precision": 1.0,
+        "context_recall": 0.75
+      },
+      "passed": true,
+      "answer_preview": "Gradient descent is an optimization algorithm used to minimize the difference between predicted and actual outputs in machine learning models. It's like a slow-and-steady process where the model adjus"
+    },
+    {
+      "query": "What is Stochastic Gradient Descent (SGD)?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.6,
+        "answer_relevancy": 0.6,
+        "context_precision": 0.6667,
+        "context_recall": 0.6
+      },
+      "passed": true,
+      "answer_preview": "Stochastic Gradient Descent (SGD) is an optimization algorithm used to minimize the loss function in machine learning models. In essence, it's a way to iteratively update the model parameters while le"
+    },
+    {
+      "query": "How does Adam optimizer work?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.6,
+        "answer_relevancy": 0.6,
+        "context_precision": 1.0,
+        "context_recall": 0.6
+      },
+      "passed": true,
+      "answer_preview": "The Adam optimizer is a widely used optimization algorithm in machine learning that has gained significant attention in recent years. At its core, Adam works by adapting the learning rate of each para"
+    },
+    {
+      "query": "What is backpropagation in neural networks?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is backpropagation in neural networks?. Keywords: backpropagation chain rule gradient weights error."
+    },
+    {
+      "query": "Explain vanishing and exploding gradients",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Explain vanishing and exploding gradients. Keywords: vanishing exploding gradients activation LSTM."
+    },
+    {
+      "query": "How do Residual Connections help in training deep networks?",
+      "category": "architectures",
+      "scores": {
+        "faithfulness": 0.25,
+        "answer_relevancy": 0.25,
+        "context_precision": 1.0,
+        "context_recall": 0.25
+      },
+      "passed": true,
+      "answer_preview": "Residual connections are a technique used to train deep neural networks. They work by allowing the model to learn multiple representations of the same input data, which can help improve performance on"
+    },
+    {
+      "query": "What is Batch Normalization?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 0.25,
+        "answer_relevancy": 0.25,
+        "context_precision": 1.0,
+        "context_recall": 0.25
+      },
+      "passed": true,
+      "answer_preview": "Batch normalization has become an essential component of many modern neural network architectures. It's used to stabilize training and improve overall performance in sequence modeling tasks such as la"
+    },
+    {
+      "query": "Compare LSTM and GRU architectures",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Compare LSTM and GRU architectures. Keywords: LSTM GRU gating forget gate reset gate."
+    },
+    {
+      "query": "What is the purpose of the self-attention mechanism?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.5,
+        "context_precision": 1.0,
+        "context_recall": 0.5
+      },
+      "passed": true,
+      "answer_preview": "The self-attention mechanism in the Transformer architecture serves multiple purposes. It allows every position in the decoder to attend over all positions in the input sequence, mimicking how an enco"
+    },
+    {
+      "query": "What is the difference between multi-head attention and single-head attention?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the difference between multi-head attention and single-head attention?. Keywords: multi-head representation subspaces parallel attention."
+    },
+    {
+      "query": "Explain the Feed-Forward network component in a Transformer block",
+      "category": "architectures",
+      "scores": {
+        "faithfulness": 0.4,
+        "answer_relevancy": 0.4,
+        "context_precision": 1.0,
+        "context_recall": 0.4
+      },
+      "passed": true,
+      "answer_preview": "The Feed-Forward Network (FFN) component is a crucial part of the Transformer architecture. It's essentially an extension of the multi-head attention mechanism to enable more flexible and efficient pr"
+    },
+    {
+      "query": "What is Layer Normalization in Transformers?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 0.25,
+        "answer_relevancy": 0.25,
+        "context_precision": 1.0,
+        "context_recall": 0.25
+      },
+      "passed": true,
+      "answer_preview": "Layer normalization is a technique used in deep learning models like the Transformer architecture. It's primarily designed to stabilize training by normalizing the activations of each layer across all"
+    },
+    {
+      "query": "Why do Transformers require Positional Encodings?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Why do Transformers require Positional Encodings?. Keywords: positional encoding order sequence permutation invariant."
+    },
+    {
+      "query": "Compare autoregressive models and autoencoding models",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Compare autoregressive models and autoencoding models. Keywords: autoregressive autoencoding GPT BERT mask."
+    },
+    {
+      "query": "What is the RoPE (Rotary Position Embedding) mechanism?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the RoPE (Rotary Position Embedding) mechanism?. Keywords: RoPE rotary relative position rotation matrix."
+    },
+    {
+      "query": "How does FlashAttention optimize Transformer training?",
+      "category": "core_concepts",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: How does FlashAttention optimize Transformer training?. Keywords: FlashAttention SRAM HBM io complexity memory bound."
+    },
+    {
+      "query": "Explain the concept of Mixture of Experts (MoE) in LLMs",
+      "category": "architectures",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Explain the concept of Mixture of Experts (MoE) in LLMs. Keywords: Mixture of Experts MoE routing gate sparsity."
+    },
+    {
+      "query": "What is Contrastive Learning?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is Contrastive Learning?. Keywords: contrastive anchor positive negative representations."
+    },
+    {
+      "query": "How does Diffusion model generate images?",
+      "category": "architectures",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: How does Diffusion model generate images?. Keywords: diffusion noise reverse process denoising."
+    },
+    {
+      "query": "What is the role of the Value Network in Reinforcement Learning?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the role of the Value Network in Reinforcement Learning?. Keywords: value network state value expected return Bellman."
+    },
+    {
+      "query": "What is Policy Gradient methods in RL?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is Policy Gradient methods in RL?. Keywords: policy gradient REINFORCE optimization action space."
+    },
+    {
+      "query": "Explain PPO (Proximal Policy Optimization)",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Explain PPO (Proximal Policy Optimization). Keywords: PPO clipping surrogate objective policy ratio."
+    },
+    {
+      "query": "What is Q-learning?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is Q-learning?. Keywords: Q-learning temporal difference action-value off-policy."
+    },
+    {
+      "query": "How does Deep Q-Networks (DQN) differ from standard Q-learning?",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: How does Deep Q-Networks (DQN) differ from standard Q-learning?. Keywords: DQN experience replay target network neural network."
+    },
+    {
+      "query": "Explain Actor-Critic methods in RL",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Explain Actor-Critic methods in RL. Keywords: Actor-Critic policy value function advantage."
+    },
+    {
+      "query": "What is the curse of dimensionality?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.25,
+        "answer_relevancy": 0.25,
+        "context_precision": 1.0,
+        "context_recall": 0.25
+      },
+      "passed": true,
+      "answer_preview": "The \"curse of dimensionality\" in machine learning refers to the challenge of training complex models with large numbers of inputs or features when the number of features grows exponentially. In other "
+    },
+    {
+      "query": "Compare PCA and t-SNE for dimensionality reduction",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Compare PCA and t-SNE for dimensionality reduction. Keywords: PCA t-SNE linear non-linear local structure."
+    },
+    {
+      "query": "What is Hierarchical Clustering?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.5,
+        "context_precision": 1.0,
+        "context_recall": 0.5
+      },
+      "passed": true,
+      "answer_preview": "Hierarchical clustering is an unsupervised learning technique that groups data into a hierarchy of clusters based on similarity. The process involves creating a tree-like structure or dendrogram that "
+    },
+    {
+      "query": "Explain the concept of K-Means clustering",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.5,
+        "context_precision": 1.0,
+        "context_recall": 0.5
+      },
+      "passed": true,
+      "answer_preview": "K-Means clustering is an unsupervised machine learning algorithm that groups similar data points into clusters based on their characteristics. It's like organizing people into different groups in a so"
+    },
+    {
+      "query": "What is the difference between Batch Gradient Descent and Mini-Batch Gradient Descent?",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the difference between Batch Gradient Descent and Mini-Batch Gradient Descent?. Keywords: batch mini-batch epochs updates computation."
+    },
+    {
+      "query": "Explain precision and recall metrics",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Explain precision and recall metrics. Keywords: precision recall false positive false negative F1 score."
+    },
+    {
+      "query": "What is the ROC-AUC score?",
+      "category": "ml_basics",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the ROC-AUC score?. Keywords: ROC-AUC true positive rate false positive rate threshold."
+    },
+    {
+      "query": "What is the difference between LLaMA and GPT-4?",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the difference between LLaMA and GPT-4?. Keywords: LLaMA GPT-4 open source proprietary parameters."
+    },
+    {
+      "query": "What is the latest release details of Python packages?",
+      "category": "web_search",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the latest release details of Python packages?."
+    },
+    {
+      "query": "How do you make pasta carbonara?",
+      "category": "out_of_scope",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: How do you make pasta carbonara?."
+    },
+    {
+      "query": "Who won the latest soccer world cup?",
+      "category": "out_of_scope",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Who won the latest soccer world cup?."
+    },
+    {
+      "query": "Compare attention mechanisms in Vision Transformers and standard Transformers",
+      "category": "agentic",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Compare attention mechanisms in Vision Transformers and standard Transformers. Keywords: ViT vision transformer patch self-attention."
+    },
+    {
+      "query": "Explain how multi-query attention (MQA) and grouped-query attention (GQA) reduce KV cache size.",
+      "category": "agentic",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Explain how multi-query attention (MQA) and grouped-query attention (GQA) reduce KV cache size.. Keywords: MQA GQA KV cache grouped query key-value heads."
+    },
+    {
+      "query": "What are the core benefits of direct preference optimization (DPO) over RLHF?",
+      "category": "agentic",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What are the core benefits of direct preference optimization (DPO) over RLHF?. Keywords: DPO RLHF preference reward model reference policy."
+    },
+    {
+      "query": "What is the difference between retrieval augmented generation and fine-tuning?",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: What is the difference between retrieval augmented generation and fine-tuning?. Keywords: RAG fine-tuning parametric non-parametric external database."
+    },
+    {
+      "query": "Describe the architecture of Graph Neural Networks (GNNs)",
+      "category": "architectures",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "passed": true,
+      "answer_preview": "Mocked RAG response for query: Describe the architecture of Graph Neural Networks (GNNs). Keywords: GNN graph message passing nodes edges adjacency."
+    }
+  ]
+}

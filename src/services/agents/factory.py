@@ -4,6 +4,7 @@ from src.services.embeddings.jina_client import JinaEmbeddingsClient
 from src.services.langfuse.client import LangfuseTracer
 from src.services.ollama.client import OllamaClient
 from src.services.opensearch.client import OpenSearchClient
+from src.services.reranker.client import RerankerClient
 
 from .agentic_rag import AgenticRAGService
 from .config import GraphConfig
@@ -14,8 +15,10 @@ def make_agentic_rag_service(
     ollama_client: OllamaClient,
     embeddings_client: JinaEmbeddingsClient,
     langfuse_tracer: Optional[LangfuseTracer] = None,
+    reranker_client: Optional[RerankerClient] = None,
     top_k: int = 3,
     use_hybrid: bool = True,
+    model: str = "llama3.2:1b",
 ) -> AgenticRAGService:
     """
     Create AgenticRAGService with dependency injection.
@@ -27,6 +30,7 @@ def make_agentic_rag_service(
         langfuse_tracer: Optional Langfuse tracer for observability
         top_k: Number of documents to retrieve (default: 3)
         use_hybrid: Use hybrid search (default: True)
+        model: Model name for execution (default: "llama3.2:1b")
 
     Returns:
         Configured AgenticRAGService instance
@@ -35,6 +39,7 @@ def make_agentic_rag_service(
     graph_config = GraphConfig(
         top_k=top_k,
         use_hybrid=use_hybrid,
+        model=model,
     )
 
     return AgenticRAGService(
@@ -43,4 +48,5 @@ def make_agentic_rag_service(
         embeddings_client=embeddings_client,
         langfuse_tracer=langfuse_tracer,
         graph_config=graph_config,
+        reranker_client=reranker_client,
     )

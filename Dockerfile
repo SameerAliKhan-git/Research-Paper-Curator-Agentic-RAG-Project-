@@ -10,11 +10,8 @@ COPY pyproject.toml uv.lock ./
 # since the cache and sync target are on separate file systems.
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_HTTP_TIMEOUT=300
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=/app/uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=/app/pyproject.toml \
-    uv sync --frozen --no-dev
+# Install dependencies (standard sync without BuildKit mounts)
+RUN uv sync --frozen --no-dev
 
 # Copy source code and static UI files
 COPY src /app/src
@@ -39,4 +36,4 @@ COPY --from=base /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"] 
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

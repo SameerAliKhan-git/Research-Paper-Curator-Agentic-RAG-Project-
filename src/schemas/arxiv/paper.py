@@ -41,6 +41,7 @@ class PaperCreate(PaperBase):
     parser_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional parser metadata")
     pdf_processed: Optional[bool] = Field(False, description="Whether PDF was successfully processed")
     pdf_processing_date: Optional[datetime] = Field(None, description="When PDF was processed")
+    content_hash: Optional[str] = Field(None, description="Content deduplication hash")
 
 
 class PaperResponse(PaperBase):
@@ -58,6 +59,7 @@ class PaperResponse(PaperBase):
     parser_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional parser metadata")
     pdf_processed: bool = Field(False, description="Whether PDF was successfully processed")
     pdf_processing_date: Optional[datetime] = Field(None, description="When PDF was processed")
+    content_hash: Optional[str] = Field(None, description="Content deduplication hash")
 
     # Timestamps
     created_at: datetime

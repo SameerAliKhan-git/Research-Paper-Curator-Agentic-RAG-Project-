@@ -2,15 +2,19 @@ import logging
 import time
 from typing import Dict, List, Optional
 
+logger = logging.getLogger(__name__)
+
+
 from langchain_core.messages import HumanMessage
 from langfuse.langchain import CallbackHandler
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
-
 from src.services.embeddings.jina_client import JinaEmbeddingsClient
 from src.services.langfuse.client import LangfuseTracer
 from src.services.ollama.client import OllamaClient
 from src.services.opensearch.client import OpenSearchClient
+from src.services.reranker.client import RerankerClient
+from src.services.reranker.factory import make_reranker_service
 
 from .config import GraphConfig
 from .context import Context
@@ -22,15 +26,27 @@ from .nodes import (
     ainvoke_retrieve_step,
     ainvoke_rewrite_query_step,
     continue_after_guardrail,
+    ainvoke_tool_retrieve_step,
+    ainvoke_verify_answer_step,
+    ainvoke_decompose_query_step,
+    ainvoke_critique_context_step,
 )
+from .nodes.rerank_node import ainvoke_rerank_step
 from .state import AgentState
-from .tools import create_retriever_tool
+from .tools import create_retriever_tool, google_search
 
-logger = logging.getLogger(__name__)
+def route_after_verification(state: AgentState) -> str:
+    """Route after verify_answer node. Route back to rewrite if hallucinated, otherwise END."""
+    is_grounded = state.get("is_grounded", True)
+    attempts = state.get("retrieval_attempts", 0)
+    if is_grounded or attempts >= 3:
+        return END
+    logger.warning("Hallucination detected! Routing back to rewrite query.")
+    return "rewrite_query"
 
 
 class AgenticRAGService:
-    """Agentic RAG service 
+    """Agentic RAG service
 
     This implementation uses:
     - context_schema for dependency injection
@@ -46,6 +62,7 @@ class AgenticRAGService:
         embeddings_client: JinaEmbeddingsClient,
         langfuse_tracer: Optional[LangfuseTracer] = None,
         graph_config: Optional[GraphConfig] = None,
+        reranker_client: Optional[RerankerClient] = None,
     ):
         """Initialize agentic RAG service.
 
@@ -53,12 +70,14 @@ class AgenticRAGService:
         :param ollama_client: Client for LLM generation
         :param embeddings_client: Client for embeddings
         :param langfuse_tracer: Optional Langfuse tracer
+        :param reranker_client: Optional CrossEncoder reranker client
         :param graph_config: Configuration for graph execution
         """
         self.opensearch = opensearch_client
         self.ollama = ollama_client
         self.embeddings = embeddings_client
         self.langfuse_tracer = langfuse_tracer
+        self.reranker = reranker_client or make_reranker_service()
         self.graph_config = graph_config or GraphConfig()
 
         logger.info("Initializing AgenticRAGService with configuration:")
@@ -92,17 +111,21 @@ class AgenticRAGService:
             top_k=self.graph_config.top_k,
             use_hybrid=self.graph_config.use_hybrid,
         )
-        tools = [retriever_tool]
+        tools = [retriever_tool, google_search]
 
-        # Add nodes (just function references - no closures needed!)
+        # Add nodes
         logger.info("Adding nodes to workflow graph")
         workflow.add_node("guardrail", ainvoke_guardrail_step)
         workflow.add_node("out_of_scope", ainvoke_out_of_scope_step)
+        workflow.add_node("decompose_query", ainvoke_decompose_query_step)
         workflow.add_node("retrieve", ainvoke_retrieve_step)
-        workflow.add_node("tool_retrieve", ToolNode(tools))
+        workflow.add_node("tool_retrieve", ainvoke_tool_retrieve_step)
+        workflow.add_node("rerank", ainvoke_rerank_step)
         workflow.add_node("grade_documents", ainvoke_grade_documents_step)
+        workflow.add_node("critique_context", ainvoke_critique_context_step)
         workflow.add_node("rewrite_query", ainvoke_rewrite_query_step)
         workflow.add_node("generate_answer", ainvoke_generate_answer_step)
+        workflow.add_node("verify_answer", ainvoke_verify_answer_step)
 
         # Add edges
         logger.info("Configuring graph edges and routing logic")
@@ -110,15 +133,18 @@ class AgenticRAGService:
         # Start → guardrail validation
         workflow.add_edge(START, "guardrail")
 
-        # Guardrail → route based on score
+        # Guardrail → route to decompose or out_of_scope
         workflow.add_conditional_edges(
             "guardrail",
             continue_after_guardrail,
             {
-                "continue": "retrieve",
+                "continue": "decompose_query",
                 "out_of_scope": "out_of_scope",
             },
         )
+
+        # Decompose query → retrieve
+        workflow.add_edge("decompose_query", "retrieve")
 
         # Out of scope → END
         workflow.add_edge("out_of_scope", END)
@@ -133,12 +159,25 @@ class AgenticRAGService:
             },
         )
 
-        # After tool retrieval → grade documents
-        workflow.add_edge("tool_retrieve", "grade_documents")
+        # After tool retrieval → rerank
+        workflow.add_edge("tool_retrieve", "rerank")
 
-        # After grading → route based on relevance
+        # After reranking → grade documents
+        workflow.add_edge("rerank", "grade_documents")
+
+        # After grading → route based on relevance: if relevant, run critique judge
         workflow.add_conditional_edges(
             "grade_documents",
+            lambda state: state.get("routing_decision", "generate_answer"),
+            {
+                "generate_answer": "critique_context",
+                "rewrite_query": "rewrite_query",
+            },
+        )
+
+        # After critique judge → route to answer generation or query rewrite
+        workflow.add_conditional_edges(
+            "critique_context",
             lambda state: state.get("routing_decision", "generate_answer"),
             {
                 "generate_answer": "generate_answer",
@@ -149,8 +188,18 @@ class AgenticRAGService:
         # After rewriting → try retrieve again
         workflow.add_edge("rewrite_query", "retrieve")
 
-        # After answer generation → done
-        workflow.add_edge("generate_answer", END)
+        # After answer generation → verify grounding
+        workflow.add_edge("generate_answer", "verify_answer")
+
+        # After verification → route back to rewrite if hallucinated, else END
+        workflow.add_conditional_edges(
+            "verify_answer",
+            route_after_verification,
+            {
+                END: END,
+                "rewrite_query": "rewrite_query",
+            },
+        )
 
         # Compile graph
         logger.info("Compiling LangGraph workflow")
@@ -164,6 +213,7 @@ class AgenticRAGService:
         query: str,
         user_id: str = "api_user",
         model: Optional[str] = None,
+        tenant_id: Optional[str] = None,
     ) -> dict:
         """Ask a question using agentic RAG.
 
@@ -215,9 +265,9 @@ class AgenticRAGService:
                         session_id=f"session_{user_id}",
                     )
                     logger.debug(f"Trace created: {trace_obj}")
-                    return await self._run_workflow(query, model_to_use, user_id, trace_obj)
+                    return await self._run_workflow(query, model_to_use, user_id, trace_obj, tenant_id)
             else:
-                return await self._run_workflow(query, model_to_use, user_id, None)
+                return await self._run_workflow(query, model_to_use, user_id, None, tenant_id)
 
         try:
             return await _execute_with_trace()
@@ -226,7 +276,7 @@ class AgenticRAGService:
             logger.exception("Full traceback:")
             raise
 
-    async def _run_workflow(self, query: str, model_to_use: str, user_id: str, trace) -> dict:
+    async def _run_workflow(self, query: str, model_to_use: str, user_id: str, trace, tenant_id: Optional[str] = None) -> dict:
         """Execute the workflow with the given trace context."""
         try:
             start_time = time.time()
@@ -253,9 +303,11 @@ class AgenticRAGService:
                 ollama_client=self.ollama,
                 opensearch_client=self.opensearch,
                 embeddings_client=self.embeddings,
+                reranker_client=self.reranker,
                 langfuse_tracer=self.langfuse_tracer,
                 trace=trace,
                 langfuse_enabled=self.langfuse_tracer is not None and self.langfuse_tracer.client is not None,
+                tenant_id=tenant_id,
                 model_name=model_to_use,
                 temperature=self.graph_config.temperature,
                 top_k=self.graph_config.top_k,
@@ -324,6 +376,7 @@ class AgenticRAGService:
                 "retrieval_attempts": retrieval_attempts,
                 "rewritten_query": result.get("rewritten_query"),
                 "execution_time": execution_time,
+                "search_mode": "hybrid" if self.graph_config.use_hybrid else "bm25",
                 "guardrail_score": result.get("guardrail_result").score if result.get("guardrail_result") else None,
             }
 
@@ -410,8 +463,7 @@ class AgenticRAGService:
             logger.error(f"Failed to generate visualization - missing dependencies: {e}")
             logger.error("Install with: pip install pygraphviz or apt-get install graphviz")
             raise ImportError(
-                "Graph visualization requires pygraphviz. "
-                "Install with: pip install pygraphviz (requires graphviz system package)"
+                "Graph visualization requires pygraphviz. Install with: pip install pygraphviz (requires graphviz system package)"
             ) from e
         except Exception as e:
             logger.error(f"Failed to generate graph visualization: {e}")

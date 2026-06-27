@@ -11,6 +11,9 @@ class AskRequest(BaseModel):
     use_hybrid: bool = Field(True, description="Use hybrid search (BM25 + vector)")
     model: str = Field("llama3.2:1b", description="Ollama model to use for generation")
     categories: Optional[List[str]] = Field(None, description="Filter by arXiv categories")
+    session_id: Optional[str] = Field(None, description="Session ID for conversation memory")
+    web_search: bool = Field(False, description="Enable searching the web for enhanced context fallback")
+    search_mode: Optional[str] = Field("auto", description="Search mode override (auto, bm25, hybrid, agentic, web_search, colpali)")
 
     class Config:
         json_schema_extra = {
@@ -20,6 +23,7 @@ class AskRequest(BaseModel):
                 "use_hybrid": True,
                 "model": "llama3.2:1b",
                 "categories": ["cs.AI", "cs.LG"],
+                "web_search": False,
             }
         }
 

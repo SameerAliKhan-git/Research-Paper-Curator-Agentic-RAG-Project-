@@ -1,15 +1,20 @@
 from fastapi import APIRouter
 from sqlalchemy import text
 
-from ..dependencies import DatabaseDep, OpenSearchDep, SettingsDep
+from ..dependencies import DatabaseDep, OllamaDep, OpenSearchDep, SettingsDep
 from ..schemas.api.health import HealthResponse, ServiceStatus
-from ..services.ollama import OllamaClient
+from ..services.ollama.client import OllamaClient
 
 router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check(settings: SettingsDep, database: DatabaseDep, opensearch_client: OpenSearchDep) -> HealthResponse:
+async def health_check(
+    settings: SettingsDep,
+    database: DatabaseDep,
+    opensearch_client: OpenSearchDep,
+    ollama_client: OllamaDep,
+) -> HealthResponse:
     """Comprehensive health check endpoint for monitoring and load balancer probes.
 
     :returns: Service health status with version and connectivity checks
@@ -30,7 +35,7 @@ async def health_check(settings: SettingsDep, database: DatabaseDep, opensearch_
                 nonlocal overall_status
                 overall_status = "degraded"
         except Exception as e:
-            services[name] = ServiceStatus(status="unhealthy", message=str(e))
+            services[name] = ServiceStatus(status="unhealthy", message="Service unavailable")
             overall_status = "degraded"
 
     # Database check
@@ -55,13 +60,14 @@ async def health_check(settings: SettingsDep, database: DatabaseDep, opensearch_
 
     # Handle Ollama async check separately
     try:
-        ollama_client = OllamaClient(settings)
         ollama_health = await ollama_client.health_check()
-        services["ollama"] = ServiceStatus(status=ollama_health["status"], message=ollama_health["message"])
-        if ollama_health["status"] != "healthy":
+        services["ollama"] = ServiceStatus(
+            status=ollama_health.get("status", "healthy"), message=ollama_health.get("message", "Service is running")
+        )
+        if ollama_health.get("status") != "healthy":
             overall_status = "degraded"
     except Exception as e:
-        services["ollama"] = ServiceStatus(status="unhealthy", message=str(e))
+        services["ollama"] = ServiceStatus(status="unhealthy", message="Service unavailable")
         overall_status = "degraded"
 
     return HealthResponse(
@@ -71,3 +77,4 @@ async def health_check(settings: SettingsDep, database: DatabaseDep, opensearch_
         service_name=settings.service_name,
         services=services,
     )
+

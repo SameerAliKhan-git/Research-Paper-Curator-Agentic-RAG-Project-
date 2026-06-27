@@ -43,6 +43,11 @@ class PdfContent(BaseModel):
     parser_used: ParserType = Field(..., description="Parser used for extraction")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Parser metadata")
 
+    @property
+    def full_text(self) -> str:
+        """Alias for raw_text to support legacy code."""
+        return self.raw_text
+
 
 class ArxivMetadata(BaseModel):
     """Paper metadata from arXiv API."""

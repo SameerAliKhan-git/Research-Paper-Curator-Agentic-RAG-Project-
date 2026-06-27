@@ -7,12 +7,17 @@ from src.schemas.indexing.models import ChunkMetadata, TextChunk
 
 logger = logging.getLogger(__name__)
 
+# Sentence boundary patterns for sentence-aware chunking
+_SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
+_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
+
 
 class TextChunker:
     """Service for chunking text into overlapping segments.
 
-    Uses word-based chunking with configurable chunk size and overlap.
+    Uses sentence-aware chunking with configurable chunk size and overlap.
     Default: 600 words per chunk with 100 word overlap.
+    Ensures chunks do not split mid-sentence.
     """
 
     def __init__(self, chunk_size: int = 600, overlap_size: int = 100, min_chunk_size: int = 100):
@@ -33,22 +38,18 @@ class TextChunker:
             f"Text chunker initialized: chunk_size={chunk_size}, overlap_size={overlap_size}, min_chunk_size={min_chunk_size}"
         )
 
-    def _split_into_words(self, text: str) -> List[str]:
-        """Split text into words while preserving whitespace information.
+    def _split_into_sentences(self, text: str) -> List[str]:
+        """Split text into sentences using boundary detection."""
+        sentences = _SENTENCE_BOUNDARY.split(text)
+        return [s.strip() for s in sentences if s.strip()]
 
-        :param text: Input text
-        :returns: List of words
-        """
-        # Split on whitespace while keeping the words
+    def _split_into_words(self, text: str) -> List[str]:
+        """Split text into words while preserving whitespace information."""
         words = re.findall(r"\S+", text)
         return words
 
-    def _reconstruct_text(self, words: List[str]) -> str:
-        """Reconstruct text from words.
-
-        :param words: List of words
-        :returns: Reconstructed text
-        """
+    def _reconstruct_text(self, words: List[str], original_text: str = None) -> str:
+        """Reconstruct text from words."""
         return " ".join(words)
 
     def chunk_paper(
@@ -91,7 +92,9 @@ class TextChunker:
         return self.chunk_text(full_text, arxiv_id, paper_id)
 
     def chunk_text(self, text: str, arxiv_id: str, paper_id: str) -> List[TextChunk]:
-        """Chunk text into overlapping segments.
+        """Chunk text into overlapping segments using sentence-aware splitting.
+
+        Ensures chunks do not split mid-sentence for better coherence.
 
         :param text: Full text to chunk
         :param arxiv_id: ArXiv ID of the paper
@@ -102,52 +105,187 @@ class TextChunker:
             logger.warning(f"Empty text provided for paper {arxiv_id}")
             return []
 
-        # Split text into words
-        words = self._split_into_words(text)
+        # Split text into sentences
+        sentences = self._split_into_sentences(text)
 
-        if len(words) < self.min_chunk_size:
-            logger.warning(f"Text for paper {arxiv_id} has only {len(words)} words, less than minimum {self.min_chunk_size}")
-            # Return single chunk if text is too small
-            if words:
-                return [
+        if not sentences:
+            # Fallback to word-based chunking
+            words = self._split_into_words(text)
+            if len(words) < self.min_chunk_size:
+                if words:
+                    return [
+                        TextChunk(
+                            text=self._reconstruct_text(words, text),
+                            metadata=ChunkMetadata(
+                                chunk_index=0,
+                                start_char=0,
+                                end_char=len(text),
+                                word_count=len(words),
+                                overlap_with_previous=0,
+                                overlap_with_next=0,
+                            ),
+                            arxiv_id=arxiv_id,
+                            paper_id=paper_id,
+                        )
+                    ]
+                return []
+            return self._chunk_words(words, arxiv_id, paper_id)
+
+        # Build chunks by grouping sentences up to chunk_size words.
+        # Oversized single sentences are split at word boundaries with proper overlap.
+        chunks = []
+        chunk_index = 0
+        current_words: List[str] = []
+        current_word_count = 0
+        overlap_words: List[str] = []
+        overlap_word_count = 0
+
+        for sentence in sentences:
+            sentence_words_list = sentence.split()
+            sentence_word_count = len(sentence_words_list)
+
+            # If a single sentence exceeds chunk_size, split it with proper overlap
+            if sentence_word_count > self.chunk_size:
+                # Flush any accumulated words first
+                if current_words:
+                    chunk_text = " ".join(current_words)
+                    chunks.append(
+                        TextChunk(
+                            text=chunk_text,
+                            metadata=ChunkMetadata(
+                                chunk_index=chunk_index,
+                                start_char=0,
+                                end_char=len(chunk_text),
+                                word_count=current_word_count,
+                                overlap_with_previous=overlap_word_count,
+                                overlap_with_next=self.overlap_size,
+                                section_title=None,
+                            ),
+                            arxiv_id=arxiv_id,
+                            paper_id=paper_id,
+                        )
+                    )
+                    chunk_index += 1
+                    overlap_words = current_words[-self.overlap_size:] if current_word_count >= self.overlap_size else list(current_words)
+                    overlap_word_count = len(overlap_words)
+                    current_words = list(overlap_words)
+                    current_word_count = overlap_word_count
+
+                # Split the oversized sentence using sliding window with overlap
+                pos = 0
+                while pos < sentence_word_count:
+                    # If we have overlap words, prepend them to the current chunk
+                    words_to_use = overlap_words + sentence_words_list[pos : pos + self.chunk_size]
+                    chunk_text = " ".join(words_to_use)
+
+                    # Calculate actual overlap for this chunk
+                    chunk_prev_overlap = overlap_word_count if chunk_index > 0 else 0
+
+                    chunks.append(
+                        TextChunk(
+                            text=chunk_text,
+                            metadata=ChunkMetadata(
+                                chunk_index=chunk_index,
+                                start_char=0,
+                                end_char=len(chunk_text),
+                                word_count=len(words_to_use),
+                                overlap_with_previous=chunk_prev_overlap,
+                                overlap_with_next=self.overlap_size if pos + self.chunk_size < sentence_word_count else 0,
+                                section_title=None,
+                            ),
+                            arxiv_id=arxiv_id,
+                            paper_id=paper_id,
+                        )
+                    )
+                    chunk_index += 1
+
+                    # Advance by chunk_size (the overlap words will be prepended next time)
+                    pos += self.chunk_size
+                    # Update overlap for next chunk
+                    all_chunk_words = overlap_words + sentence_words_list[pos - self.chunk_size : pos] if pos >= self.chunk_size else sentence_words_list[:pos]
+                    # Actually, the chunk words are: overlap_words + sentence_words_list[pos-self.chunk_size:pos]
+                    # but since pos already advanced, we need to get the words that were just chunked
+                    chunk_words = overlap_words + sentence_words_list[pos - self.chunk_size : pos]
+                    overlap_words = chunk_words[-self.overlap_size:] if len(chunk_words) >= self.overlap_size else list(chunk_words)
+                    overlap_word_count = len(overlap_words)
+                    current_words = list(overlap_words)
+                    current_word_count = overlap_word_count
+                continue
+
+            # If adding this sentence exceeds chunk_size, finalize current chunk
+            if current_word_count + sentence_word_count > self.chunk_size and current_words:
+                chunk_text = " ".join(current_words)
+                chunks.append(
                     TextChunk(
-                        text=self._reconstruct_text(words, text),
+                        text=chunk_text,
                         metadata=ChunkMetadata(
-                            chunk_index=0,
+                            chunk_index=chunk_index,
                             start_char=0,
-                            end_char=len(text),
-                            word_count=len(words),
-                            overlap_with_previous=0,
-                            overlap_with_next=0,
+                            end_char=len(chunk_text),
+                            word_count=current_word_count,
+                            overlap_with_previous=overlap_word_count,
+                            overlap_with_next=self.overlap_size,
+                            section_title=None,
                         ),
                         arxiv_id=arxiv_id,
                         paper_id=paper_id,
                     )
-                ]
-            return []
+                )
+                chunk_index += 1
 
+                # Build overlap from end of current chunk
+                overlap_words = current_words[-self.overlap_size:] if current_word_count >= self.overlap_size else list(current_words)
+                overlap_word_count = len(overlap_words)
+
+                current_words = list(overlap_words)
+                current_word_count = overlap_word_count
+
+            current_words.extend(sentence_words_list)
+            current_word_count += sentence_word_count
+
+        # Add final chunk
+        if current_words:
+            chunk_text = " ".join(current_words)
+            if len(current_words) >= self.min_chunk_size or len(chunks) == 0:
+                chunks.append(
+                    TextChunk(
+                        text=chunk_text,
+                        metadata=ChunkMetadata(
+                            chunk_index=chunk_index,
+                            start_char=0,
+                            end_char=len(chunk_text),
+                            word_count=current_word_count,
+                            overlap_with_previous=overlap_word_count,
+                            overlap_with_next=0,
+                            section_title=None,
+                        ),
+                        arxiv_id=arxiv_id,
+                        paper_id=paper_id,
+                    )
+                )
+
+        logger.info(f"Chunked paper {arxiv_id}: {len(sentences)} sentences -> {len(chunks)} chunks")
+
+        return chunks
+
+    def _chunk_words(self, words: List[str], arxiv_id: str, paper_id: str) -> List[TextChunk]:
+        """Fallback word-based chunking for text without clear sentence boundaries."""
         chunks = []
         chunk_index = 0
         current_position = 0
 
         while current_position < len(words):
-            # Calculate chunk boundaries
             chunk_start = current_position
             chunk_end = min(current_position + self.chunk_size, len(words))
-
-            # Extract chunk words
             chunk_words = words[chunk_start:chunk_end]
             chunk_text = self._reconstruct_text(chunk_words)
 
-            # Calculate character offsets (approximate)
             start_char = len(" ".join(words[:chunk_start])) if chunk_start > 0 else 0
             end_char = len(" ".join(words[:chunk_end]))
 
-            # Calculate overlaps
             overlap_with_previous = min(self.overlap_size, chunk_start) if chunk_start > 0 else 0
             overlap_with_next = self.overlap_size if chunk_end < len(words) else 0
 
-            # Create chunk
             chunk = TextChunk(
                 text=chunk_text,
                 metadata=ChunkMetadata(
@@ -157,22 +295,18 @@ class TextChunker:
                     word_count=len(chunk_words),
                     overlap_with_previous=overlap_with_previous,
                     overlap_with_next=overlap_with_next,
-                    section_title=None,  # Could be enhanced with section detection
+                    section_title=None,
                 ),
                 arxiv_id=arxiv_id,
                 paper_id=paper_id,
             )
             chunks.append(chunk)
 
-            # Move to next chunk position (with overlap)
             current_position += self.chunk_size - self.overlap_size
             chunk_index += 1
 
-            # Break if we've processed all words
             if chunk_end >= len(words):
                 break
-
-        logger.info(f"Chunked paper {arxiv_id}: {len(words)} words -> {len(chunks)} chunks")
 
         return chunks
 

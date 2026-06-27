@@ -33,6 +33,33 @@ async def _index_papers_with_chunks(papers):
 
     stats = await indexing_service.index_papers_batch(papers=papers_data, replace_existing=True)
 
+    # Trigger multimodal picture description and indexing for each paper
+    try:
+        from src.services.arxiv.factory import make_arxiv_client
+        from src.services.ollama.factory import make_ollama_client
+        from src.services.multimodal import MultiModalProcessor
+
+        arxiv_client = make_arxiv_client()
+        ollama_client = make_ollama_client()
+        multimodal_processor = MultiModalProcessor()
+
+        for paper in papers:
+            arxiv_id = getattr(paper, "arxiv_id", None) or paper.get("arxiv_id")
+            paper_id = str(getattr(paper, "id", None) or paper.get("id"))
+            if arxiv_id and paper_id:
+                pdf_path = arxiv_client._get_pdf_path(arxiv_id)
+                if pdf_path.exists():
+                    logger.info(f"Processing figures for paper {arxiv_id}...")
+                    await multimodal_processor.process_and_index_pdf_figures(
+                        pdf_path=pdf_path,
+                        paper_id=paper_id,
+                        opensearch_client=indexing_service.opensearch_client,
+                        ollama_client=ollama_client,
+                        embeddings_client=indexing_service.embeddings_client,
+                    )
+    except Exception as e:
+        logger.warning(f"Failed to process multimodal figures during Airflow indexing: {e}")
+
     return stats
 
 

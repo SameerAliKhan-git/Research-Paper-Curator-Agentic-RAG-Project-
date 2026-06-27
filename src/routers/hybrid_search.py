@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
-from src.dependencies import EmbeddingsDep, OpenSearchDep
+from src.dependencies import APIKeyDep, EmbeddingsDep, OpenSearchDep, TenantDep
 from src.schemas.api.search import HybridSearchRequest, SearchHit, SearchResponse
 
 logger = logging.getLogger(__name__)
@@ -11,7 +11,10 @@ router = APIRouter(prefix="/hybrid-search", tags=["hybrid-search"])
 
 @router.post("/", response_model=SearchResponse)
 async def hybrid_search(
-    request: HybridSearchRequest, opensearch_client: OpenSearchDep, embeddings_service: EmbeddingsDep
+    request: HybridSearchRequest,
+    opensearch_client: OpenSearchDep,
+    embeddings_service: EmbeddingsDep,
+    tenant: TenantDep,
 ) -> SearchResponse:
     """
     Hybrid search endpoint supporting multiple search modes.
@@ -31,7 +34,7 @@ async def hybrid_search(
 
         logger.info(f"Hybrid search: '{request.query}' (hybrid: {request.use_hybrid and query_embedding is not None})")
 
-        results = opensearch_client.search_unified(
+        results = await opensearch_client.search_unified(
             query=request.query,
             query_embedding=query_embedding,
             size=request.size,
@@ -40,6 +43,7 @@ async def hybrid_search(
             latest=request.latest_papers,
             use_hybrid=request.use_hybrid,
             min_score=request.min_score,
+            tenant_id=tenant.tenant_id,
         )
 
         hits = []
@@ -76,4 +80,4 @@ async def hybrid_search(
         raise
     except Exception as e:
         logger.error(f"Hybrid search error: {e}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Search service encountered an error")

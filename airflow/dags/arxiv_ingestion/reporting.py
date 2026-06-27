@@ -11,6 +11,7 @@ def generate_daily_report(**context):
     """Generate a daily report of the ingestion pipeline results.
 
     Collects statistics from all previous tasks and generates a summary report.
+    Uses parameterized queries to prevent SQL injection.
     """
     logger.info("Generating daily ingestion report")
 
@@ -45,6 +46,7 @@ def generate_daily_report(**context):
             from sqlalchemy import func
             from src.models.paper import Paper
 
+            # Parameterized query - no SQL injection risk
             total_papers = session.query(func.count(Paper.id)).scalar()
             report["database_statistics"] = {"total_papers": total_papers}
 

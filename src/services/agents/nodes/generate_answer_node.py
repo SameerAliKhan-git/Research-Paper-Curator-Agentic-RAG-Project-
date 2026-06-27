@@ -2,10 +2,11 @@ import logging
 import time
 from typing import Dict, List
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.runtime import Runtime
 
 from ..context import Context
+from ..models import SourceItem
 from ..prompts import GENERATE_ANSWER_PROMPT
 from ..state import AgentState
 from .utils import get_latest_context, get_latest_query
@@ -73,11 +74,8 @@ async def ainvoke_generate_answer_step(
             logger.warning(f"Failed to create span for generate_answer node: {e}")
 
     try:
-        # Create answer generation prompt from template
-        answer_prompt = GENERATE_ANSWER_PROMPT.format(
-            context=context,
-            question=question,
-        )
+        # Create answer generation prompt - safe concatenation (no format injection)
+        answer_prompt = GENERATE_ANSWER_PROMPT + "\n\nRetrieved Research Papers:\n" + context + "\n\nUser Question:\n" + question
 
         # Get LLM from runtime context
         llm = runtime.context.ollama_client.get_langchain_model(
@@ -90,7 +88,7 @@ async def ainvoke_generate_answer_step(
         response = await llm.ainvoke(answer_prompt)
 
         # Extract content from response
-        answer = response.content if hasattr(response, 'content') else str(response)
+        answer = response.content if hasattr(response, "content") else str(response)
         logger.info(f"Generated answer of length: {len(answer)} characters")
 
         # Update span with successful result
@@ -109,20 +107,63 @@ async def ainvoke_generate_answer_step(
             )
 
     except Exception as e:
-        logger.error(f"LLM answer generation failed: {e}, falling back to error message")
+        logger.error(f"LLM answer generation failed: {type(e).__name__}")
 
-        # Fallback to error message if LLM fails
-        answer = f"I apologize, but I encountered an error while generating the answer: {str(e)}\n\nPlease try again or rephrase your question."
+        # Fallback to generic error message - never leak error details
+        answer = (
+            "I apologize, but I encountered an error while generating the answer. Please try again or rephrase your question."
+        )
 
         # Update span with error
         if span:
             execution_time = (time.time() - start_time) * 1000
             runtime.context.langfuse_tracer.update_span(
                 span,
-                output={"error": str(e), "fallback": True},
+                output={"error": type(e).__name__, "fallback": True},
                 metadata={"execution_time_ms": execution_time},
                 level="ERROR",
             )
             runtime.context.langfuse_tracer.end_span(span)
 
-    return {"messages": [AIMessage(content=answer)]}
+    # Extract sources from tool messages if not already populated
+    relevant_sources = state.get("relevant_sources", [])
+    if not relevant_sources:
+        messages = state.get("messages", [])
+        for msg in reversed(messages):
+            if isinstance(msg, ToolMessage):
+                docs_list = None
+                if getattr(msg, "artifact", None) and isinstance(msg.artifact, list):
+                    docs_list = msg.artifact
+                elif isinstance(msg.content, list):
+                    docs_list = msg.content
+
+                if docs_list:
+                    for doc in docs_list:
+                        metadata = getattr(doc, "metadata", {}) if hasattr(doc, "metadata") else {}
+                        if isinstance(doc, dict):
+                            metadata = doc.get("metadata", {})
+
+                        arxiv_id = metadata.get("arxiv_id", "")
+                        if not arxiv_id and metadata.get("search_mode") == "web_search":
+                            arxiv_id = "web"
+                        if arxiv_id:
+                            url = metadata.get("source", "#")
+                            authors_val = metadata.get("authors", [])
+                            if isinstance(authors_val, str):
+                                authors_val = [authors_val] if authors_val else []
+
+                            relevant_sources.append(
+                                SourceItem(
+                                    arxiv_id=arxiv_id,
+                                    title=metadata.get("title", "Untitled"),
+                                    authors=authors_val,
+                                    url=url,
+                                    relevance_score=float(metadata.get("score", 0.0)),
+                                )
+                            )
+                    break
+
+    return {
+        "messages": [AIMessage(content=answer)],
+        "relevant_sources": relevant_sources,
+    }

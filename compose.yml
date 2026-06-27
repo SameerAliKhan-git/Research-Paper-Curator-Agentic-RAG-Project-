@@ -2,7 +2,7 @@ services:
   # API service
   api:
     build: .
-    container_name: rag-api
+    container_name: rag-api-server
     ports:
       - "8000:8000"
     depends_on:
@@ -31,6 +31,9 @@ services:
       - REDIS__HOST=redis
     networks:
       - rag-network
+    volumes:
+      - ./src:/app/src
+      - ./static:/app/static
 
   redis:
     image: redis:7-alpine
@@ -369,6 +372,40 @@ services:
     networks:
       - rag-network
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: rag-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: rag-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - rag-network
+    restart: unless-stopped
+
 
 volumes:
   postgres_data:
@@ -379,6 +416,8 @@ volumes:
   redis_data:
   langfuse_v3_postgres_data:
   langfuse_v3_minio_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   rag-network:

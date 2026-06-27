@@ -242,6 +242,7 @@ class LangfuseTracer:
             yield None
             return
 
+        generation = None
         try:
             generation = self.client.generation(
                 name=name,
@@ -249,10 +250,10 @@ class LangfuseTracer:
                 input=input_data,
                 metadata=metadata or {},
             )
-            yield generation
         except Exception as e:
             logger.error(f"Error creating generation span: {e}")
-            yield None
+
+        yield generation
 
     @contextmanager
     def start_span(
@@ -288,16 +289,17 @@ class LangfuseTracer:
             yield None
             return
 
+        span = None
         try:
             span = self.client.span(
                 name=name,
                 input=input_data,
                 metadata=metadata or {},
             )
-            yield span
         except Exception as e:
             logger.error(f"Error creating span: {e}")
-            yield None
+
+        yield span
 
     def update_generation(
         self,

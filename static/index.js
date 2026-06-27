@@ -48,7 +48,6 @@ let currentTab = 'python';
 
 function switchCodeTab(tab) {
     currentTab = tab;
-    // Update active tab button classes
     document.querySelectorAll('.code-tab').forEach(btn => {
         if (btn.textContent.toLowerCase() === tab || (tab === 'js' && btn.textContent.toLowerCase().includes('node'))) {
             btn.classList.add('active');
@@ -56,7 +55,6 @@ function switchCodeTab(tab) {
             btn.classList.remove('active');
         }
     });
-    // Update code text
     const codeWell = document.getElementById('code-well');
     if (codeWell) {
         codeWell.textContent = codeSnippets[tab];
@@ -103,8 +101,8 @@ const mockPapers = [
     {
         arxiv_id: "1706.03762",
         title: "Attention Is All You Need",
-        authors: ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar", "Jakob Uszkoreit"],
-        abstract: "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
+        authors: ["Ashish Vaswani", "Noam Shazeer"],
+        abstract: "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.",
         categories: ["cs.CL", "cs.LG"],
         pdf_url: "https://arxiv.org/pdf/1706.03762.pdf",
         pdf_processed: true
@@ -112,34 +110,15 @@ const mockPapers = [
     {
         arxiv_id: "1810.04805",
         title: "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
-        authors: ["Jacob Devlin", "Ming-Wei Chang", "Kenton Lee", "Kristina Toutanova"],
-        abstract: "We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations.",
+        authors: ["Jacob Devlin", "Ming-Wei Chang"],
+        abstract: "We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers.",
         categories: ["cs.CL", "cs.LG"],
         pdf_url: "https://arxiv.org/pdf/1810.04805.pdf",
-        pdf_processed: true
-    },
-    {
-        arxiv_id: "2005.14165",
-        title: "Language Models are Few-Shot Learners (GPT-3)",
-        authors: ["Tom B. Brown", "Benjamin Mann", "Nick Ryder", "Melanie Subbiah"],
-        abstract: "We train GPT-3, an autoregressive language model with 175 billion parameters, and test its performance in the few-shot setting. We show that scaling up language models greatly improves task-agnostic, few-shot performance.",
-        categories: ["cs.CL", "cs.LG", "cs.AI"],
-        pdf_url: "https://arxiv.org/pdf/2005.14165.pdf",
-        pdf_processed: true
-    },
-    {
-        arxiv_id: "2303.08774",
-        title: "GPT-4 Technical Report",
-        authors: ["OpenAI"],
-        abstract: "We report the development of GPT-4, a large-scale, multimodal model which can accept image and text inputs and produce text outputs. GPT-4 exhibits human-level performance on various professional and academic benchmarks.",
-        categories: ["cs.CL", "cs.AI", "cs.LG"],
-        pdf_url: "https://arxiv.org/pdf/2303.08774.pdf",
         pdf_processed: true
     }
 ];
 
 function generateThumbnailColor(arxivId) {
-    // Generate a harmonious pastel background color based on the arXiv ID digits
     const cleanId = arxivId.replace(/[^0-9]/g, '');
     const num = cleanId ? parseInt(cleanId.slice(0, 4)) : 1234;
     const hue = num % 360;
@@ -150,23 +129,27 @@ function loadPapers() {
     const grid = document.getElementById('papers-grid');
     if (!grid) return;
 
-    fetch('/api/v1/papers')
+    fetch('/api/v1/papers', {
+        headers: {
+            'X-API-Key': 'dev-test-key-999',
+            'X-Tenant-ID': 'default'
+        }
+    })
         .then(response => {
             if (!response.ok) throw new Error('API down');
             return response.json();
         })
-        .then(papers => {
+        .then(data => {
             grid.innerHTML = '';
-            if (!papers || papers.length === 0) {
-                // If API succeeds but DB is empty, render beautiful samples
+            const papersList = data.papers || [];
+            if (!papersList || papersList.length === 0) {
                 renderPapersList(mockPapers, true);
             } else {
-                renderPapersList(papers, false);
+                renderPapersList(papersList, false);
             }
         })
         .catch(err => {
             console.log("Retrieving live papers failed, loading default repository specimens:", err);
-            // Render mocks if backend fails or database connection is down
             grid.innerHTML = '';
             renderPapersList(mockPapers, true);
         });
@@ -175,265 +158,426 @@ function loadPapers() {
 function renderPapersList(papers, isMock) {
     const grid = document.getElementById('papers-grid');
     if (!grid) return;
+    grid.innerHTML = '';
     
     papers.forEach(paper => {
-        const authors = Array.isArray(paper.authors) ? paper.authors.slice(0, 3).join(', ') + (paper.authors.length > 3 ? ' et al.' : '') : (paper.authors || 'Unknown');
+        const authors = Array.isArray(paper.authors) ? paper.authors.slice(0, 2).join(', ') : (paper.authors || 'Unknown');
         const categories = Array.isArray(paper.categories) ? paper.categories : [paper.categories];
-        const tagsHtml = categories.map(cat => `<span class="badge-tag">${cat}</span>`).join(' ');
-        const isProcessed = paper.pdf_processed;
-        const color = generateThumbnailColor(paper.arxiv_id);
+        const tagsHtml = categories.map(cat => `<span style="background: rgba(255,255,255,0.06); color: #888; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-family: var(--font-code);">${cat}</span>`).join(' ');
         
-        const cardHtml = `
-            <div class="model-card">
-                <div class="card-thumbnail" style="background-color: ${color}">
-                    <div class="card-image-placeholder">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                    </div>
-                </div>
-                <div class="card-author">${authors}</div>
-                <h4 class="card-title">${paper.title}</h4>
-                <p class="card-desc">${paper.abstract}</p>
-                <div class="card-footer">
-                    <span class="badge-status" style="background-color: ${isProcessed ? '#2b9a66' : '#8d8d8d'}">
-                        ${isProcessed ? 'Ready' : 'Ingested'}
-                    </span>
-                    <div class="card-tags">
-                        ${tagsHtml}
-                    </div>
-                    <a href="${paper.pdf_url}" target="_blank" class="nav-icon-btn" title="View on arXiv" style="margin-left: 8px;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                    </a>
-                </div>
+        const isUpload = !paper.pdf_url || paper.pdf_url === '#' || paper.arxiv_id.startsWith('upload_') || paper.pdf_url.includes('upload_');
+        const pdfLinkHtml = isUpload
+            ? `<span style="opacity: 0.3; color: #888; font-size: 11px;">(Upload)</span>`
+            : `<a href="${paper.pdf_url}" target="_blank" style="color: var(--color-primary); font-size: 11px; text-decoration: underline;">arXiv PDF</a>`;
+
+        const row = document.createElement('div');
+        row.style.background = '#181818';
+        row.style.border = '1px solid #282828';
+        row.style.borderRadius = '6px';
+        row.style.padding = '10px 12px';
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '4px';
+        row.style.transition = 'border-color 0.2s';
+        row.style.cursor = 'pointer';
+        row.onmouseenter = () => { row.style.borderColor = '#444'; };
+        row.onmouseleave = () => { row.style.borderColor = '#282828'; };
+        row.onclick = () => {
+            const queryArea = document.getElementById('query-text');
+            if (queryArea) {
+                queryArea.value = `Explain the methodology and results of the paper titled "${paper.title}".`;
+                queryArea.style.height = '';
+                queryArea.style.height = queryArea.scrollHeight + 'px';
+                queryArea.focus();
+            }
+        };
+
+        row.innerHTML = `
+            <div style="font-weight: 600; font-size: 13px; color: #fff; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${paper.title}">
+                ${paper.title}
+            </div>
+            <div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span>by ${authors}</span>
+                ${pdfLinkHtml}
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+                ${tagsHtml}
             </div>
         `;
-        grid.innerHTML += cardHtml;
+        grid.appendChild(row);
     });
 
     if (isMock) {
         const warningBanner = document.createElement('div');
-        warningBanner.className = 'loading-placeholder';
-        warningBanner.style.padding = '16px';
-        warningBanner.style.color = 'var(--color-charcoal)';
-        warningBanner.innerHTML = `<p style="font-size: 14px; text-align: center;">💡 Displaying mock papers library. To load real documents, start the Airflow data ingestion pipeline or configure your postgres database.</p>`;
-        grid.parentNode.insertBefore(warningBanner, grid.nextSibling);
+        warningBanner.style.padding = '10px 12px';
+        warningBanner.style.color = '#555';
+        warningBanner.style.fontSize = '11px';
+        warningBanner.style.textAlign = 'center';
+        warningBanner.style.lineHeight = '1.4';
+        warningBanner.innerHTML = `<p>💡 Showing mock repository. Sync OpenSearch database to see live indexed papers.</p>`;
+        grid.appendChild(warningBanner);
     }
 }
 
+function renderCitationItem(src) {
+    const li = document.createElement('li');
+    li.style.display = 'inline-block';
+    if (src.includes('upload_') || src === '#' || !src.startsWith('http')) {
+        const label = src.includes('upload_') ? src.split('/').pop() : 'Local Uploaded PDF';
+        li.innerHTML = `<span style="background-color: #333; color: #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: default;">Local: ${label}</span>`;
+    } else if (src.includes('arxiv.org')) {
+        const fileName = src.split('/').pop();
+        const arxivId = fileName.replace('.pdf', '');
+        li.innerHTML = `<a href="${src}" target="_blank" style="background-color: rgba(234,40,4,0.15); color: var(--color-primary); border: 1px solid rgba(234,40,4,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;"><span>arXiv</span>${arxivId}</a>`;
+    } else {
+        try {
+            const domain = new URL(src).hostname.replace('www.', '');
+            li.innerHTML = `<a href="${src}" target="_blank" style="background-color: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;"><span>Web</span>${domain}</a>`;
+        } catch (e) {
+            li.innerHTML = `<a href="${src}" target="_blank" style="background-color: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;"><span>Web</span>Link</a>`;
+        }
+    }
+    return li;
+}
+
 // ==========================================================================
-// Search & RAG Execution Logic
+// Ingestion Pipeline Handler
+// ==========================================================================
+function triggerPaperIngest() {
+    const input = document.getElementById('ingest-arxiv-id');
+    const msg = document.getElementById('ingest-status-msg');
+    if (!input || !msg) return;
+
+    const arxivId = input.value.trim();
+    if (!arxivId) {
+        msg.textContent = 'Enter a valid arXiv ID';
+        msg.style.color = 'var(--color-primary)';
+        return;
+    }
+
+    msg.textContent = 'Ingesting paper...';
+    msg.style.color = '#aaa';
+
+    fetch(`/api/v1/papers/ingest?arxiv_id=${encodeURIComponent(arxivId)}`, {
+        method: 'POST',
+        headers: {
+            'X-API-Key': 'dev-test-key-999',
+            'X-Tenant-ID': 'default'
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Ingest service error');
+        return res.json();
+    })
+    .then(data => {
+        msg.textContent = '✓ Ingested successfully!';
+        msg.style.color = 'var(--color-badge-success)';
+        input.value = '';
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+        loadPapers();
+    })
+    .catch(err => {
+        console.error(err);
+        msg.textContent = 'Failed to ingest paper';
+        msg.style.color = 'var(--color-primary)';
+    });
+}
+
+// ==========================================================================
+// Search & RAG Execution Logic (ChatGPT-style Chat)
 // ==========================================================================
 let currentTraceId = null;
+
+function escapeHtml(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderStreamedResponse(text, answerBodyElement) {
+    let thinkingText = '';
+    let finalAnswerText = '';
+    
+    const thinkStart = text.indexOf('<think>');
+    const thinkEnd = text.indexOf('</think>');
+    
+    if (thinkStart !== -1) {
+        if (thinkEnd !== -1) {
+            thinkingText = text.substring(thinkStart + 7, thinkEnd).trim();
+            finalAnswerText = text.substring(thinkEnd + 8).trim();
+        } else {
+            thinkingText = text.substring(thinkStart + 7).trim();
+        }
+    } else {
+        finalAnswerText = text;
+    }
+    
+    let html = '';
+    if (thinkingText) {
+        html += `
+            <div class="thinking-container" style="background: rgba(255, 255, 255, 0.02); border-left: 3px solid var(--color-primary); padding: 12px 16px; margin-bottom: 14px; border-radius: 0 8px 8px 0; font-size: 13.5px; color: #a0a0a0; box-shadow: inset 2px 0 0 rgba(0,0,0,0.5);">
+                <div style="font-weight: bold; color: var(--color-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" class="pulse-icon" style="animation: brain-pulse 1.6s infinite; display: inline-block; vertical-align: middle;"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z"/></svg>
+                    Thinking Process
+                </div>
+                <div style="font-style: italic; line-height: 1.5; white-space: pre-wrap; font-family: var(--font-body);">${escapeHtml(thinkingText)}</div>
+            </div>
+        `;
+    }
+    if (finalAnswerText) {
+        html += `<div class="final-response">${formatMarkdown(finalAnswerText)}</div>`;
+    }
+    answerBodyElement.innerHTML = html;
+}
+
 
 async function executeRAG() {
     const queryInput = document.getElementById('query-text');
     const query = queryInput ? queryInput.value.trim() : '';
     if (!query) return;
 
-    const runBtn = document.getElementById('run-query-btn');
-    const outputContainer = document.getElementById('output-container');
-    const timelineContainer = document.getElementById('timeline-container');
-    const timelineSteps = document.getElementById('timeline-steps');
-    const citationsContainer = document.getElementById('citations-container');
-    const citationsList = document.getElementById('citations-list');
-    const statusText = document.getElementById('terminal-status-text');
-    const statusDot = document.querySelector('.status-dot');
-    const latencyLabel = document.getElementById('terminal-latency');
-    const modeLabel = document.getElementById('terminal-mode');
-    const feedbackPanel = document.getElementById('feedback-panel');
-    const traceIdDisplay = document.getElementById('trace-id-display');
-    const feedbackStatus = document.getElementById('feedback-status');
-
-    // Reset feedback panel state
-    feedbackPanel.style.display = 'none';
-    traceIdDisplay.textContent = '';
-    feedbackStatus.textContent = '';
-    currentTraceId = null;
-
-    // Read parameters
-    const mode = document.querySelector('input[name="search-mode"]:checked').value;
+    const chatHistory = document.getElementById('chat-history');
     const model = document.getElementById('model-select').value;
     const topK = parseInt(document.getElementById('top-k-slider').value);
     const categoryFilterStr = document.getElementById('category-tags').value.trim();
     const categories = categoryFilterStr ? categoryFilterStr.split(',').map(c => c.trim()) : null;
+    const statusText = document.getElementById('terminal-status-text');
+    const statusDot = document.getElementById('status-dot-indicator');
+    const latencyLabel = document.getElementById('terminal-latency');
+    const feedbackPanel = document.getElementById('feedback-panel');
+    const feedbackStatus = document.getElementById('feedback-status');
 
-    // Update terminal header status
-    statusText.textContent = 'Executing';
+    // Reset feedback
+    feedbackPanel.style.display = 'none';
+    feedbackStatus.textContent = '';
+    currentTraceId = null;
+
+    // Reset Input Box height
+    queryInput.value = '';
+    queryInput.style.height = 'auto';
+
+    // 1. Append User Message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg-bubble user';
+    userMsg.style.display = 'flex';
+    userMsg.style.gap = '16px';
+    userMsg.style.padding = '18px';
+    userMsg.style.background = '#111';
+    userMsg.style.border = '1px solid #1a1a1a';
+    userMsg.style.borderRadius = '8px';
+    userMsg.style.maxWidth = '90%';
+    userMsg.style.marginLeft = 'auto';
+    userMsg.innerHTML = `
+        <div style="flex: 1; text-align: right;">
+            <p style="font-size: 14.5px; line-height: 1.6; color: #fff; margin: 0;">${escapeHtml(query)}</p>
+        </div>
+        <div style="width: 32px; height: 32px; background: #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 12px; flex-shrink: 0; font-family: var(--font-display);">U</div>
+    `;
+    chatHistory.appendChild(userMsg);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    // Update status to loading
+    statusText.textContent = 'Thinking';
     statusDot.className = 'status-dot loading';
+    statusDot.style.background = '#ffc000';
+    statusDot.style.boxShadow = '0 0 8px #ffc000';
     latencyLabel.textContent = 'running...';
-    modeLabel.textContent = mode;
 
-    // Clear output contents
-    outputContainer.innerHTML = '<p class="placeholder-text">Initializing connection to LLM engine...</p>';
-    timelineContainer.style.display = 'none';
-    timelineSteps.innerHTML = '';
-    citationsContainer.style.display = 'none';
-    citationsList.innerHTML = '';
+    // 2. Append Agent Message Bubble
+    const agentMsg = document.createElement('div');
+    agentMsg.className = 'msg-bubble agent';
+    agentMsg.style.display = 'flex';
+    agentMsg.style.gap = '16px';
+    agentMsg.style.padding = '18px';
+    agentMsg.style.background = '#0a0a0a';
+    agentMsg.style.border = '1px solid #181818';
+    agentMsg.style.borderRadius = '8px';
+    agentMsg.style.maxWidth = '90%';
+    
+    agentMsg.innerHTML = `
+        <div style="width: 32px; height: 32px; background: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 12px; flex-shrink: 0; font-family: var(--font-display);">AI</div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+            <div class="agent-activity" style="font-size: 12.5px; color: #888; font-style: italic; display: flex; align-items: center; gap: 8px;">
+                <span class="spinner" style="border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--color-primary); border-radius: 50%; width: 14px; height: 14px; display: inline-block; animation: spin 1s linear infinite;"></span>
+                <span class="activity-text">Contacting agent router...</span>
+            </div>
+            <details class="thought-process-details" style="display: none; background: #0e0e0e; border: 1px solid #222; border-radius: 6px; padding: 10px 14px;">
+                <summary style="font-size: 12px; cursor: pointer; user-select: none; color: #888; font-weight: 600; outline: none;">🧠 Thought Process</summary>
+                <ul class="thought-steps-list" style="margin-top: 10px; margin-left: 18px; padding: 0; font-size: 12px; color: #aaa; display: flex; flex-direction: column; gap: 6px;"></ul>
+            </details>
+            <div class="answer-body" style="font-size: 14.5px; line-height: 1.6; color: #e0e0e0; min-height: 18px;"></div>
+            <div class="visual-gallery" style="display: none; margin-top: 12px;"></div>
+            <div class="citations-footer" style="display: none; border-top: 1px solid #1c1c1c; padding-top: 10px; flex-direction: column; gap: 6px;">
+                <div style="font-size: 11.5px; font-weight: 600; color: #646464; text-transform: uppercase;">Retained Sources:</div>
+                <ul class="citations-ul" style="display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0;"></ul>
+            </div>
+        </div>
+    `;
+    chatHistory.appendChild(agentMsg);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    const activityText = agentMsg.querySelector('.activity-text');
+    const thoughtDetails = agentMsg.querySelector('.thought-process-details');
+    const thoughtList = agentMsg.querySelector('.thought-steps-list');
+    const answerBody = agentMsg.querySelector('.answer-body');
+    const visualGallery = agentMsg.querySelector('.visual-gallery');
+    const citationsFooter = agentMsg.querySelector('.citations-footer');
+    const citationsUl = agentMsg.querySelector('.citations-ul');
+    const activityDiv = agentMsg.querySelector('.agent-activity');
 
     const startTime = Date.now();
 
-    if (mode === 'agentic') {
-        // Agentic RAG Mode (LangGraph POST request)
-        try {
-            const payload = {
-                query: query,
-                top_k: topK,
-                use_hybrid: true,
-                model: model,
-                categories: categories
-            };
+    try {
+        const payload = {
+            query: query,
+            top_k: topK,
+            use_hybrid: true,
+            model: model,
+            categories: categories,
+            search_mode: "auto"
+        };
 
-            const response = await fetch('/api/v1/ask-agentic', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+        const response = await fetch('/api/v1/stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': 'dev-test-key-999',
+                'X-Tenant-ID': 'default'
+            },
+            body: JSON.stringify(payload)
+        });
 
-            const elapsed = Date.now() - startTime;
-            latencyLabel.textContent = `${elapsed} ms`;
-
-            if (!response.ok) {
-                const errJson = await response.json().catch(() => ({detail: "Server Error"}));
-                throw new Error(errJson.detail || `Server returned ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            // Render Answer
-            outputContainer.innerHTML = `<p>${formatMarkdown(data.answer)}</p>`;
-
-            // Render Timeline Reasoning Steps
-            if (data.reasoning_steps && data.reasoning_steps.length > 0) {
-                timelineContainer.style.display = 'block';
-                data.reasoning_steps.forEach(step => {
-                    const li = document.createElement('li');
-                    li.textContent = step;
-                    timelineSteps.appendChild(li);
-                });
-            }
-
-            // Render Citations
-            if (data.sources && data.sources.length > 0) {
-                citationsContainer.style.display = 'block';
-                data.sources.forEach(src => {
-                    const li = document.createElement('li');
-                    const fileName = src.split('/').pop();
-                    li.innerHTML = `<a href="${src}" target="_blank">${fileName}</a>`;
-                    citationsList.appendChild(li);
-                });
-            }
-
-            // Display trace and feedback if trace_id is present
-            if (data.trace_id) {
-                currentTraceId = data.trace_id;
-                feedbackPanel.style.display = 'flex';
-                traceIdDisplay.textContent = `Trace ID: ${data.trace_id}`;
-            }
-
-            statusText.textContent = 'Completed';
-            statusDot.className = 'status-dot success';
-
-        } catch (err) {
-            outputContainer.innerHTML = `<p style="color: var(--color-primary);">Error running agentic query: ${err.message}. Make sure Docker Compose services (PostgreSQL, OpenSearch, Ollama) are fully running.</p>`;
-            statusText.textContent = 'Failed';
-            statusDot.className = 'status-dot warning';
-            latencyLabel.textContent = '-- ms';
+        if (!response.ok) {
+            throw new Error(`API stream error: status ${response.status}`);
         }
-    } else {
-        // Standard / Hybrid search (Streaming endpoint `/api/v1/stream`)
-        try {
-            const payload = {
-                query: query,
-                top_k: topK,
-                use_hybrid: mode === 'hybrid',
-                model: model,
-                categories: categories
-            };
 
-            const response = await fetch('/api/v1/stream', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let currentText = '';
 
-            if (!response.ok) {
-                throw new Error(`API stream error: status ${response.status}`);
-            }
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
 
-            outputContainer.innerHTML = '';
-            
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder('utf-8');
-            let buffer = '';
-            let currentText = '';
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop(); // Keep incomplete line
 
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (!dataStr) continue;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n\n');
-                buffer = lines.pop(); // Keep incomplete line
+                    try {
+                        const parsed = JSON.parse(dataStr);
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const dataStr = line.slice(6).trim();
-                        if (!dataStr) continue;
-
-                        try {
-                            const parsed = JSON.parse(dataStr);
-
-                            if (parsed.error) {
-                                throw new Error(parsed.error);
-                            }
-
-                            // Handle Metadata chunk
-                            if (parsed.sources) {
-                                if (parsed.sources.length > 0) {
-                                    citationsContainer.style.display = 'block';
-                                    parsed.sources.forEach(src => {
-                                        const li = document.createElement('li');
-                                        const fileName = src.split('/').pop();
-                                        li.innerHTML = `<a href="${src}" target="_blank">${fileName}</a>`;
-                                        citationsList.appendChild(li);
-                                    });
-                                }
-                                continue;
-                            }
-
-                            // Handle streaming tokens
-                            if (parsed.chunk) {
-                                currentText += parsed.chunk;
-                                outputContainer.innerHTML = `<p>${formatMarkdown(currentText)}</p>`;
-                            }
-
-                            // Handle completion
-                            if (parsed.done) {
-                                if (parsed.answer && parsed.answer !== currentText) {
-                                    outputContainer.innerHTML = `<p>${formatMarkdown(parsed.answer)}</p>`;
-                                }
-                                statusText.textContent = 'Completed';
-                                statusDot.className = 'status-dot success';
-                                const elapsed = Date.now() - startTime;
-                                latencyLabel.textContent = `${elapsed} ms`;
-                            }
-                        } catch (e) {
-                            // Suppress decode warnings
+                        if (parsed.error) {
+                            throw new Error(parsed.error);
                         }
+
+                        // 1. Process steps (Thought process)
+                        if (parsed.step) {
+                            activityText.textContent = parsed.step;
+                            thoughtDetails.style.display = 'block';
+                            const li = document.createElement('li');
+                            li.textContent = parsed.step;
+                            thoughtList.appendChild(li);
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        }
+
+                        // 2. Process search_mode details
+                        if (parsed.search_mode) {
+                            const badge = document.getElementById('routing-badge');
+                            if (badge) {
+                                badge.textContent = `⚡ Routed: ${parsed.search_mode.toUpperCase()}`;
+                            }
+                        }
+
+                        // 3. Process visual results (ColPali vision)
+                        if (parsed.visual_results && parsed.visual_results.length > 0) {
+                            activityDiv.style.display = 'none';
+                            let html = `
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-top:10px;">
+                            `;
+                            parsed.visual_results.forEach(hit => {
+                                html += `
+                                    <div style="background:#141414; border:1px solid #222; border-radius:6px; overflow:hidden; display:flex; flex-direction:column; padding:8px;">
+                                        <div style="position:relative; width:100%; height:160px; background:#000; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                                            <img src="${hit.image_path}" style="max-width:100%; max-height:100%; object-fit:contain; cursor:pointer;" onclick="window.open('${hit.image_path}', '_blank')" title="Click to view layout page" />
+                                        </div>
+                                        <div style="margin-top:8px; font-size:11px; display:flex; flex-direction:column; gap:2px; color:#aaa;">
+                                            <span style="font-weight:bold; color:var(--color-primary);">arXiv ID: ${hit.arxiv_id}</span>
+                                            <span>Page: <strong style="color:white;">${hit.page_number}</strong></span>
+                                            <span>Score: <strong style="color:#4caf50;">${hit.score.toFixed(4)}</strong></span>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                            visualGallery.innerHTML = html;
+                            visualGallery.style.display = 'block';
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        }
+
+                        // 4. Process citations sources
+                        if (parsed.sources && parsed.sources.length > 0) {
+                            citationsFooter.style.display = 'flex';
+                            parsed.sources.forEach(src => {
+                                citationsUl.appendChild(renderCitationItem(src));
+                            });
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        }
+
+                        // 5. Process streaming chunk
+                        if (parsed.chunk) {
+                            activityDiv.style.display = 'none';
+                            currentText += parsed.chunk;
+                            renderStreamedResponse(currentText, answerBody);
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        }
+
+                        // 6. Process completion
+                        if (parsed.done) {
+                            activityDiv.style.display = 'none';
+                            if (parsed.answer && parsed.answer !== currentText) {
+                                renderStreamedResponse(parsed.answer, answerBody);
+                            } else {
+                                renderStreamedResponse(currentText, answerBody);
+                            }
+                            statusText.textContent = 'Standby';
+                            statusDot.className = 'status-dot success';
+                            statusDot.style.background = '#2b9a66';
+                            statusDot.style.boxShadow = '0 0 8px #2b9a66';
+                            const elapsed = Date.now() - startTime;
+                            latencyLabel.textContent = `${elapsed} ms`;
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        }
+
+                        // 7. Process Langfuse trace feedback key
+                        if (parsed.trace_id) {
+                            currentTraceId = parsed.trace_id;
+                            feedbackPanel.style.display = 'flex';
+                        }
+
+                    } catch (e) {
+                        // ignore malformed chunks
                     }
                 }
             }
-        } catch (err) {
-            outputContainer.innerHTML = `<p style="color: var(--color-primary);">Connection error: ${err.message}. Ensure backend RAG API server is started.</p>`;
-            statusText.textContent = 'Failed';
-            statusDot.className = 'status-dot warning';
-            latencyLabel.textContent = '-- ms';
         }
+    } catch (err) {
+        activityDiv.style.display = 'none';
+        answerBody.innerHTML = `<p style="color: var(--color-primary); margin:0;">Connection error: ${err.message}. Ensure backend RAG API server is started.</p>`;
+        statusText.textContent = 'Failed';
+        statusDot.className = 'status-dot warning';
+        statusDot.style.background = '#ea2804';
+        statusDot.style.boxShadow = '0 0 8px #ea2804';
+        latencyLabel.textContent = '-- ms';
+        chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 }
 
@@ -459,7 +603,11 @@ function submitFeedback(score) {
 
     fetch('/api/v1/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'dev-test-key-999',
+            'X-Tenant-ID': 'default'
+        },
         body: JSON.stringify({
             trace_id: currentTraceId,
             score: score,
@@ -472,11 +620,9 @@ function submitFeedback(score) {
     })
     .then(() => {
         feedbackStatus.textContent = '✓ Recorded';
-        feedbackStatus.style.color = 'var(--color-badge-success)';
     })
     .catch(() => {
         feedbackStatus.textContent = 'Failed';
-        feedbackStatus.style.color = 'var(--color-primary)';
     });
 }
 
@@ -484,28 +630,57 @@ function submitFeedback(score) {
 // Initialization & Listeners
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Set initial code well content
-    switchCodeTab('python');
+    // Inject brain-pulse animation style
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes brain-pulse {
+            0% { opacity: 0.4; transform: scale(0.96); }
+            50% { opacity: 1; transform: scale(1.06); }
+            100% { opacity: 0.4; transform: scale(0.96); }
+        }
+    `;
+    document.head.appendChild(style);
 
-    // 2. Load indexed papers grid
+    switchCodeTab('python');
     loadPapers();
 
-    // 3. Register Execute Button listener
     const runBtn = document.getElementById('run-query-btn');
     if (runBtn) {
         runBtn.addEventListener('click', executeRAG);
     }
 
-    // 4. Register slider listener
+    const queryInput = document.getElementById('query-text');
+    if (queryInput) {
+        queryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                executeRAG();
+            }
+        });
+    }
+
+    const ingestBtn = document.getElementById('btn-ingest-paper');
+    if (ingestBtn) {
+        ingestBtn.addEventListener('click', triggerPaperIngest);
+    }
+
+    const ingestInput = document.getElementById('ingest-arxiv-id');
+    if (ingestInput) {
+        ingestInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                triggerPaperIngest();
+            }
+        });
+    }
+
     const slider = document.getElementById('top-k-slider');
     const sliderVal = document.getElementById('top-k-value');
     if (slider && sliderVal) {
         slider.addEventListener('input', (e) => {
-            sliderVal.textContent = `${e.target.value} chunks`;
+            sliderVal.textContent = e.target.value;
         });
     }
 
-    // 5. Register feedback ratings
     const upBtn = document.getElementById('feedback-up');
     const downBtn = document.getElementById('feedback-down');
     if (upBtn) {

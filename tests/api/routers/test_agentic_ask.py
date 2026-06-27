@@ -29,11 +29,24 @@ def mock_agentic_rag_service():
 @pytest.fixture
 def client(mock_agentic_rag_service):
     """FastAPI test client with mocked dependencies."""
+    from src.services.auth.api_key_service import require_api_key, APIKeyMetadata
+
     # Override the dependency to return our mock service
     def override_get_agentic_rag_service():
         return mock_agentic_rag_service
 
     app.dependency_overrides[dependencies.get_agentic_rag_service] = override_get_agentic_rag_service
+    app.dependency_overrides[require_api_key] = lambda: APIKeyMetadata(
+        key_hash="test_hash",
+        user_id="test_user",
+        tier="admin",
+        rate_limit=1000,
+        quota_remaining=1000,
+        tenants=["default"],
+    )
+    app.dependency_overrides[dependencies.get_embeddings_service] = lambda: AsyncMock()
+    app.dependency_overrides[dependencies.get_cache_client] = lambda: None
+    app.dependency_overrides[dependencies.get_semantic_cache] = lambda: None
 
     yield TestClient(app)
 

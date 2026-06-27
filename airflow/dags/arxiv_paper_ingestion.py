@@ -26,12 +26,39 @@ default_args = {
 dag = DAG(
     "arxiv_paper_ingestion",
     default_args=default_args,
-    description="Daily arXiv CS.AI paper pipeline: fetch → store to PostgreSQL → chunk & embed → hybrid OpenSearch indexing",
+    description="Daily arXiv CS.AI paper pipeline: fetch -> store to PostgreSQL -> chunk & embed -> hybrid OpenSearch indexing",
     schedule="0 6 * * 1-5",  # Monday-Friday at 6 AM UTC
     max_active_runs=1,
     catchup=False,
     tags=["arxiv", "papers", "ingestion", "hybrid-search", "embeddings", "chunks"],
 )
+
+
+def _get_target_date(**context) -> str:
+    """Compute target date for paper ingestion.
+
+    Supports explicit date via params['target_date'] (YYYYMMDD format).
+    Falls back to execution_date - 1 day for scheduled runs.
+    Idempotent: same target_date produces same results (upsert logic).
+    """
+    params = context.get("params", {})
+    explicit_date = params.get("target_date")
+    if explicit_date:
+        # Validate format
+        try:
+            datetime.strptime(explicit_date, "%Y%m%d")
+            return explicit_date
+        except ValueError:
+            pass
+
+    execution_date = context.get("execution_date")
+    if execution_date:
+        target_dt = execution_date - timedelta(days=1)
+        return target_dt.strftime("%Y%m%d")
+
+    yesterday = datetime.now() - timedelta(days=1)
+    return yesterday.strftime("%Y%m%d")
+
 
 # Task definitions
 setup_task = PythonOperator(

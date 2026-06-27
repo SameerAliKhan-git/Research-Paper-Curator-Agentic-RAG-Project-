@@ -7,7 +7,7 @@ from src.services.agents.models import GuardrailScoring
 @pytest.fixture
 def mock_opensearch_client():
     client = Mock()
-    client.search_unified = Mock(return_value={
+    client.search_unified = AsyncMock(return_value={
         "hits": [
             {
                 "chunk_text": "Transformers are neural network architectures based on self-attention mechanisms.",
@@ -40,6 +40,12 @@ def mock_ollama_client():
 def mock_jina_embeddings_client():
     client = Mock()
     client.embed_query = AsyncMock(return_value=[0.1] * 1024)
+    return client
+
+@pytest.fixture
+def mock_arxiv_client():
+    client = Mock()
+    client.fetch_papers_with_query = AsyncMock(return_value=[])
     return client
 
 @pytest.fixture

@@ -8,10 +8,15 @@ class GuardrailScoring(BaseModel):
 
     :param score: Relevance score between 0 and 100
     :param reason: Brief explanation for the score
+    :param query_type: Type of query: local_papers, web_search, or out_of_scope
     """
 
     score: int = Field(ge=0, le=100, description="Relevance score between 0 and 100")
     reason: str = Field(description="Brief reason for the score")
+    query_type: Literal["local_papers", "web_search", "out_of_scope"] = Field(
+        default="local_papers",
+        description="Classification: 'local_papers' (specific CS/AI/ML research paper queries), 'web_search' (extremely recent news/events/releases, general programming, or general web queries that local paper DB won't contain), or 'out_of_scope' (completely irrelevant questions)",
+    )
 
 
 class GradeDocuments(BaseModel):
@@ -74,9 +79,7 @@ class RoutingDecision(BaseModel):
     :param reason: Explanation for the routing decision
     """
 
-    route: Literal["retrieve", "out_of_scope", "generate_answer", "rewrite_query"] = Field(
-        description="Next node to route to"
-    )
+    route: Literal["retrieve", "out_of_scope", "generate_answer", "rewrite_query"] = Field(description="Next node to route to")
     reason: str = Field(default="", description="Reason for routing decision")
 
 
@@ -106,3 +109,26 @@ class ReasoningStep(BaseModel):
     step_name: str = Field(description="Name of the reasoning step")
     description: str = Field(description="Human-readable description")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Step metadata")
+
+
+class VerificationResult(BaseModel):
+    """Result of answer verification (hallucination guard).
+
+    :param is_grounded: Whether the generated answer is grounded in retrieved context
+    :param reasoning: Brief reasoning for the decision
+    :param unsupported_claims: List of claims that are not supported by the context
+    """
+
+    is_grounded: bool = Field(description="Whether the answer is grounded in context")
+    reasoning: str = Field(description="Brief reasoning")
+    unsupported_claims: List[str] = Field(default_factory=list, description="Unsupported claims")
+
+
+class SubQueriesResult(BaseModel):
+    """Result of query decomposition (multi-hop RAG).
+
+    :param sub_queries: List of simpler sub-queries decomposed from the main query
+    """
+
+    sub_queries: List[str] = Field(description="Decomposed sub-queries")
+

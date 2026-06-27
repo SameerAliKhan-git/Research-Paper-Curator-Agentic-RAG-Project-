@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Any, Dict, List, Optional
@@ -6,9 +7,13 @@ import httpx
 from src.config import Settings
 from src.exceptions import OllamaConnectionError, OllamaException, OllamaTimeoutError
 from src.schemas.ollama import RAGResponse
+from src.services.circuit_breaker import async_circuit_breaker_retry
 from src.services.ollama.prompts import RAGPromptBuilder, ResponseParser
 
 logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+RETRY_DELAY_BASE = 1.0
 
 
 class OllamaClient:
@@ -20,6 +25,53 @@ class OllamaClient:
         self.timeout = httpx.Timeout(float(settings.ollama_timeout))
         self.prompt_builder = RAGPromptBuilder()
         self.response_parser = ResponseParser()
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create a shared httpx client (internal use)."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self.timeout)
+        return self._client
+
+    async def get_client(self) -> httpx.AsyncClient:
+        """Public accessor for the shared httpx client."""
+        return await self._get_client()
+
+    def get_langchain_model(self, model: str, temperature: float = 0.0) -> Any:
+        """Get a LangChain-compatible model instance for Ollama.
+
+        Falls back to ``llama3.2:1b`` if the requested model is not available.
+
+        Args:
+            model: Model name to use
+            temperature: Generation temperature
+
+        Returns:
+            ChatOllama instance
+        """
+        from langchain_ollama import ChatOllama
+
+        effective_model = self._resolve_model(model)
+        return ChatOllama(
+            base_url=self.base_url,
+            model=effective_model,
+            temperature=temperature,
+        )
+
+    def _resolve_model(self, requested: str) -> str:
+        """Return *requested* if available locally, else the default fallback."""
+        try:
+            import httpx as _httpx
+
+            with _httpx.Client(timeout=5.0) as c:
+                resp = c.get(f"{self.base_url}/api/tags")
+                models = [m["name"] for m in resp.json().get("models", [])]
+                if any(requested in name for name in models):
+                    return requested
+            logger.warning(f"Model '{requested}' not found locally, falling back to llama3.2:1b")
+        except Exception:
+            logger.warning("Could not verify model availability, falling back to llama3.2:1b")
+        return "llama3.2:1b"
 
     async def health_check(self) -> Dict[str, Any]:
         """
@@ -29,19 +81,18 @@ class OllamaClient:
             Dictionary with health status information
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                # Check version endpoint for health
-                response = await client.get(f"{self.base_url}/api/version")
+            client = await self._get_client()
+            response = await client.get(f"{self.base_url}/api/version")
 
-                if response.status_code == 200:
-                    version_data = response.json()
-                    return {
-                        "status": "healthy",
-                        "message": "Ollama service is running",
-                        "version": version_data.get("version", "unknown"),
-                    }
-                else:
-                    raise OllamaException(f"Ollama returned status {response.status_code}")
+            if response.status_code == 200:
+                version_data = response.json()
+                return {
+                    "status": "healthy",
+                    "message": "Ollama service is running",
+                    "version": version_data.get("version", "unknown"),
+                }
+            else:
+                raise OllamaException(f"Ollama returned status {response.status_code}")
 
         except httpx.ConnectError as e:
             raise OllamaConnectionError(f"Cannot connect to Ollama service: {e}")
@@ -60,14 +111,14 @@ class OllamaClient:
             List of model information dictionaries
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
+            client = await self._get_client()
+            response = await client.get(f"{self.base_url}/api/tags")
 
-                if response.status_code == 200:
-                    data = response.json()
-                    return data.get("models", [])
-                else:
-                    raise OllamaException(f"Failed to list models: {response.status_code}")
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("models", [])
+            else:
+                raise OllamaException(f"Failed to list models: {response.status_code}")
 
         except httpx.ConnectError as e:
             raise OllamaConnectionError(f"Cannot connect to Ollama service: {e}")
@@ -78,9 +129,16 @@ class OllamaClient:
         except Exception as e:
             raise OllamaException(f"Error listing models: {e}")
 
+    @async_circuit_breaker_retry(
+        service_name="ollama",
+        max_retries=3,
+        retry_exceptions=(httpx.ConnectError, httpx.TimeoutException, OllamaException),
+        failure_threshold=5,
+        recovery_timeout=30,
+    )
     async def generate(self, model: str, prompt: str, stream: bool = False, **kwargs) -> Optional[Dict[str, Any]]:
         """
-        Generate text using specified model.
+        Generate text using specified model with circuit breaker + retry.
 
         Args:
             model: Model name to use
@@ -96,56 +154,54 @@ class OllamaClient:
                 - latency_ms: Generation latency in milliseconds
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                data = {"model": model, "prompt": prompt, "stream": stream, **kwargs}
+            client = await self._get_client()
+            data = {"model": model, "prompt": prompt, "stream": stream, **kwargs}
 
-                logger.info(f"Sending request to Ollama: model={model}, stream={stream}, extra_params={kwargs}")
-                response = await client.post(f"{self.base_url}/api/generate", json=data)
+            logger.info(f"Sending request to Ollama: model={model}, stream={stream}")
+            response = await client.post(f"{self.base_url}/api/generate", json=data)
 
-                if response.status_code == 200:
-                    result = response.json()
+            if response.status_code == 200:
+                result = response.json()
 
-                    # Parse Ollama usage metadata and convert to Langfuse-compatible format
-                    usage_metadata = {}
+                # Parse Ollama usage metadata and convert to Langfuse-compatible format
+                usage_metadata = {}
 
-                    # Ollama returns these fields in the response
-                    if "prompt_eval_count" in result:
-                        usage_metadata["prompt_tokens"] = result.get("prompt_eval_count", 0)
-                    if "eval_count" in result:
-                        usage_metadata["completion_tokens"] = result.get("eval_count", 0)
+                # Ollama returns these fields in the response
+                if "prompt_eval_count" in result:
+                    usage_metadata["prompt_tokens"] = result.get("prompt_eval_count", 0)
+                if "eval_count" in result:
+                    usage_metadata["completion_tokens"] = result.get("eval_count", 0)
 
-                    # Calculate total tokens
-                    if usage_metadata:
-                        usage_metadata["total_tokens"] = (
-                            usage_metadata.get("prompt_tokens", 0) +
-                            usage_metadata.get("completion_tokens", 0)
-                        )
+                # Calculate total tokens
+                if usage_metadata:
+                    usage_metadata["total_tokens"] = usage_metadata.get("prompt_tokens", 0) + usage_metadata.get(
+                        "completion_tokens", 0
+                    )
 
-                    # Parse timing information (convert nanoseconds to milliseconds)
-                    if "total_duration" in result:
-                        # Ollama returns duration in nanoseconds
-                        usage_metadata["latency_ms"] = round(result["total_duration"] / 1_000_000, 2)
+                # Parse timing information (convert nanoseconds to milliseconds)
+                if "total_duration" in result:
+                    usage_metadata["latency_ms"] = round(result["total_duration"] / 1_000_000, 2)
 
-                    # Add timing breakdown if available
-                    if "prompt_eval_duration" in result:
-                        usage_metadata["prompt_eval_duration_ms"] = round(result["prompt_eval_duration"] / 1_000_000, 2)
-                    if "eval_duration" in result:
-                        usage_metadata["eval_duration_ms"] = round(result["eval_duration"] / 1_000_000, 2)
+                # Add timing breakdown if available
+                if "prompt_eval_duration" in result:
+                    usage_metadata["prompt_eval_duration_ms"] = round(result["prompt_eval_duration"] / 1_000_000, 2)
+                if "eval_duration" in result:
+                    usage_metadata["eval_duration_ms"] = round(result["eval_duration"] / 1_000_000, 2)
 
-                    # Attach usage metadata to the response
-                    result["usage_metadata"] = usage_metadata
+                # Attach usage metadata to the response
+                result["usage_metadata"] = usage_metadata
 
-                    logger.debug(f"Usage metadata: {usage_metadata}")
+                logger.debug(f"Usage metadata: {usage_metadata}")
 
-                    return result
-                else:
-                    raise OllamaException(f"Generation failed: {response.status_code}")
+                return result
+            else:
+                raise OllamaException(f"Generation failed: {response.status_code}")
 
         except httpx.ConnectError as e:
             raise OllamaConnectionError(f"Cannot connect to Ollama service: {e}")
         except httpx.TimeoutException as e:
             raise OllamaTimeoutError(f"Ollama service timeout: {e}")
-        except OllamaException:
+        except (OllamaException, OllamaConnectionError, OllamaTimeoutError):
             raise
         except Exception as e:
             raise OllamaException(f"Error generating with Ollama: {e}")
@@ -163,23 +219,23 @@ class OllamaClient:
             JSON chunks from streaming response
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                data = {"model": model, "prompt": prompt, "stream": True, **kwargs}
+            client = await self._get_client()
+            data = {"model": model, "prompt": prompt, "stream": True, **kwargs}
 
-                logger.info(f"Starting streaming generation: model={model}")
+            logger.info(f"Starting streaming generation: model={model}")
 
-                async with client.stream("POST", f"{self.base_url}/api/generate", json=data) as response:
-                    if response.status_code != 200:
-                        raise OllamaException(f"Streaming generation failed: {response.status_code}")
+            async with client.stream("POST", f"{self.base_url}/api/generate", json=data) as response:
+                if response.status_code != 200:
+                    raise OllamaException(f"Streaming generation failed: {response.status_code}")
 
-                    async for line in response.aiter_lines():
-                        if line.strip():
-                            try:
-                                chunk = json.loads(line)
-                                yield chunk
-                            except json.JSONDecodeError:
-                                logger.warning(f"Failed to parse streaming chunk: {line}")
-                                continue
+                async for line in response.aiter_lines():
+                    if line.strip():
+                        try:
+                            chunk = json.loads(line)
+                            yield chunk
+                        except json.JSONDecodeError:
+                            logger.warning(f"Failed to parse streaming chunk")
+                            continue
 
         except httpx.ConnectError as e:
             raise OllamaConnectionError(f"Cannot connect to Ollama service: {e}")
@@ -250,8 +306,11 @@ class OllamaClient:
                     for chunk in chunks:
                         arxiv_id = chunk.get("arxiv_id")
                         if arxiv_id:
-                            arxiv_id_clean = arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
-                            pdf_url = f"https://arxiv.org/pdf/{arxiv_id_clean}.pdf"
+                            if arxiv_id.startswith("upload_"):
+                                pdf_url = "#"
+                            else:
+                                arxiv_id_clean = arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
+                                pdf_url = f"https://arxiv.org/pdf/{arxiv_id_clean}.pdf"
                             if pdf_url not in seen_urls:
                                 sources.append(pdf_url)
                                 seen_urls.add(pdf_url)
@@ -304,3 +363,8 @@ class OllamaClient:
         except Exception as e:
             logger.error(f"Error generating streaming RAG answer: {e}")
             raise OllamaException(f"Failed to generate streaming RAG answer: {e}")
+
+    async def close(self):
+        """Close the HTTP client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()

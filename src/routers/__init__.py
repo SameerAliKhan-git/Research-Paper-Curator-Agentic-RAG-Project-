@@ -1,6 +1,45 @@
 """Router modules for the RAG API."""
 
-# Import all available routers
-from . import ask, hybrid_search, ping
+from . import (
+    admin,
+    agentic_ask,
+    ask,
+    bulk,
+    citations,
+    export,
+    hybrid_search,
+    literature,
+    papers,
+    ping,
+    related,
+    review,
+    summarize,
+    trends,
+    ws,
+    users,
+    collections,
+    annotations,
+    sync,
+)
 
-__all__ = ["ask", "ping", "hybrid_search"]
+__all__ = [
+    "ask",
+    "ping",
+    "hybrid_search",
+    "export",
+    "papers",
+    "bulk",
+    "agentic_ask",
+    "summarize",
+    "related",
+    "ws",
+    "admin",
+    "citations",
+    "trends",
+    "review",
+    "literature",
+    "users",
+    "collections",
+    "annotations",
+    "sync",
+]

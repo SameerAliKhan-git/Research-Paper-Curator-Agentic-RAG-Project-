@@ -71,8 +71,10 @@ class DoclingParser:
 
             # Check page count limit
             pdf_doc = pdfium.PdfDocument(str(pdf_path))
-            actual_pages = len(pdf_doc)
-            pdf_doc.close()
+            try:
+                actual_pages = len(pdf_doc)
+            finally:
+                pdf_doc.close()
 
             if actual_pages > self.max_pages:
                 logger.warning(

@@ -16,7 +16,7 @@ def anyio_backend() -> str:
 async def client():
     """HTTP client for API testing with mocked services."""
     with (
-        patch("src.main.make_database") as mock_make_db,
+        patch("src.database.make_database") as mock_make_db,
         patch("src.main.make_opensearch_client") as mock_make_os,
         patch("src.main.make_arxiv_client") as mock_make_arxiv,
         patch("src.main.make_pdf_parser_service") as mock_make_pdf,
@@ -25,6 +25,9 @@ async def client():
         patch("src.main.make_langfuse_tracer") as mock_make_langfuse,
         patch("src.main.make_cache_client") as mock_make_cache,
         patch("src.main.make_telegram_service") as mock_make_telegram,
+        patch("src.main.make_semantic_cache") as mock_make_semantic,
+        patch("src.main.make_api_key_service") as mock_make_apikey,
+        patch("src.main.make_reranker_service") as mock_make_reranker,
         patch("src.repositories.paper.PaperRepository.get_by_arxiv_id") as mock_get_by_id,
     ):
         # Mock database
@@ -40,15 +43,23 @@ async def client():
         mock_os.client.count.return_value = {"count": 10}
         
         # Unified search mock returning sample hit
-        mock_os.search_unified.return_value = {
-            "total": 1,
-            "hits": [{
-                "arxiv_id": "2301.00001",
-                "title": "Test Paper",
-                "chunk_text": "This is a test paper.",
-                "score": 1.0,
-                "abstract": "This is a test paper abstract."
-            }]
+        mock_os.search_unified = AsyncMock(
+            return_value={
+                "total": 1,
+                "hits": [
+                    {
+                        "arxiv_id": "2301.00001",
+                        "title": "Test Paper",
+                        "chunk_text": "This is a test paper.",
+                        "score": 1.0,
+                        "abstract": "This is a test paper abstract.",
+                    }
+                ],
+            }
+        )
+        mock_os.get_index_stats.return_value = {
+            "index_name": "arxiv-papers",
+            "document_count": 10,
         }
         mock_make_os.return_value = mock_os
 
@@ -67,6 +78,7 @@ async def client():
 
         # Mock Ollama
         mock_ollama = AsyncMock()
+        mock_ollama.health_check.return_value = {"status": "healthy", "version": "0.3.0", "message": "Ollama service is running"}
         mock_ollama.generate_rag_answer.return_value = {"answer": "Mocked answer", "done": True}
         
         async def mock_generate_stream(*args, **kwargs):
@@ -85,9 +97,30 @@ async def client():
         # Mock Telegram
         mock_make_telegram.return_value = None
 
+        # Mock Semantic Cache
+        mock_make_semantic.return_value = None
+
+        # Mock API Key Service
+        mock_make_apikey.return_value = None
+
+        # Mock Reranker
+        mock_make_reranker.return_value = None
+
         # Mock repository
         mock_get_by_id.return_value = None
 
-        async with LifespanManager(app) as manager:
-            async with AsyncClient(transport=ASGITransport(app=manager.app), base_url="http://test") as client:
-                yield client
+        from src.services.auth.api_key_service import require_api_key, APIKeyMetadata
+        app.dependency_overrides[require_api_key] = lambda: APIKeyMetadata(
+            key_hash="test_hash",
+            user_id="test_user",
+            tier="admin",
+            rate_limit=1000,
+            quota_remaining=1000,
+            tenants=["default"],
+        )
+        try:
+            async with LifespanManager(app) as manager:
+                async with AsyncClient(transport=ASGITransport(app=manager.app), base_url="http://test") as client:
+                    yield client
+        finally:
+            app.dependency_overrides.clear()

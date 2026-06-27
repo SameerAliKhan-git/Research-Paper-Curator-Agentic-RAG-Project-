@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from langfuse._client.span import LangfuseSpan
 from typing import TYPE_CHECKING, Optional
 
+from langfuse._client.span import LangfuseSpan
 from src.services.embeddings.jina_client import JinaEmbeddingsClient
 from src.services.langfuse.client import LangfuseTracer
 from src.services.ollama.client import OllamaClient
 from src.services.opensearch.client import OpenSearchClient
+from src.services.reranker.client import RerankerClient
 
 
 @dataclass
@@ -17,6 +18,7 @@ class Context:
     :param ollama_client: Client for LLM generation
     :param opensearch_client: Client for document search
     :param embeddings_client: Client for embeddings
+    :param reranker_client: Optional client for cross-encoder reranking
     :param langfuse_tracer: Optional tracer for observability
     :param trace: Current Langfuse trace object (if enabled)
     :param langfuse_enabled: Whether Langfuse tracing is enabled
@@ -30,9 +32,11 @@ class Context:
     ollama_client: OllamaClient
     opensearch_client: OpenSearchClient
     embeddings_client: JinaEmbeddingsClient
-    langfuse_tracer: Optional[LangfuseTracer]
+    reranker_client: Optional[RerankerClient] = None
+    langfuse_tracer: Optional[LangfuseTracer] = None
     trace: Optional["LangfuseSpan"] = None
     langfuse_enabled: bool = False
+    tenant_id: Optional[str] = None
     model_name: str = "llama3.2:1b"
     temperature: float = 0.0
     top_k: int = 3

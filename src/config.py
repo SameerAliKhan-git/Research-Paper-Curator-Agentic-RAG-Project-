@@ -94,15 +94,16 @@ class OpenSearchSettings(BaseConfigSettings):
     host: str = "http://localhost:9200"
     index_name: str = "arxiv-papers"
     chunk_index_suffix: str = "chunks"  # Creates single hybrid index: {index_name}-{suffix}
-    max_text_size: int = 1000000
+    max_text_size: int = Field(default=1000000, ge=1000, le=10000000)
+    request_timeout: int = Field(default=30, ge=5, le=120, description="OpenSearch request timeout in seconds")
 
     # Vector search settings
-    vector_dimension: int = 1024  # Jina embeddings dimension
+    vector_dimension: int = Field(default=1024, ge=128, le=4096)  # Jina embeddings dimension
     vector_space_type: str = "cosinesimil"  # cosinesimil, l2, innerproduct
 
     # Hybrid search settings
     rrf_pipeline_name: str = "hybrid-rrf-pipeline"
-    hybrid_search_size_multiplier: int = 2  # Get k*multiplier for better recall
+    hybrid_search_size_multiplier: int = Field(default=2, ge=1, le=5)  # Get k*multiplier for better recall
 
 
 class LangfuseSettings(BaseConfigSettings):
@@ -135,15 +136,15 @@ class RedisSettings(BaseConfigSettings):
     )
 
     host: str = "localhost"
-    port: int = 6379
+    port: int = Field(default=6379, ge=1, le=65535)
     password: str = ""
-    db: int = 0
+    db: int = Field(default=0, ge=0, le=15)
     decode_responses: bool = True
-    socket_timeout: int = 30
-    socket_connect_timeout: int = 30
+    socket_timeout: int = Field(default=30, ge=5, le=120)
+    socket_connect_timeout: int = Field(default=30, ge=5, le=120)
 
     # Cache settings
-    ttl_hours: int = 6  # Cache TTL in hours
+    ttl_hours: int = Field(default=6, ge=1, le=168)  # Cache TTL in hours (1 week max)
 
 
 class TelegramSettings(BaseConfigSettings):
@@ -159,23 +160,92 @@ class TelegramSettings(BaseConfigSettings):
     enabled: bool = False
 
 
+class RerankerSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="RERANKER__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+
+    enabled: bool = True  # Enable by default; gracefully degrades if dependencies missing
+    provider: str = "bge"  # jina, cohere, bge (local)
+    model: str = "BAAI/bge-reranker-v2-m3"
+    api_key: str = ""
+    base_url: str = "https://api.jina.ai/v1/rerank"
+    timeout: float = 30.0
+    top_n: int = 3
+
+
+class JWTSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="JWT__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+
+    secret_key: str = "your-super-secret-jwt-key-change-it-in-production"
+    algorithm: str = "HS256"
+    expire_minutes: int = 1440  # 1 day expiration
+
+
+class EmailSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="EMAIL__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    from_address: str = "noreply@arxivcurator.com"
+    enabled: bool = False
+
+
 class Settings(BaseConfigSettings):
     app_version: str = "0.1.0"
-    debug: bool = True
+    debug: bool = False
     environment: Literal["development", "staging", "production"] = "development"
     service_name: str = "rag-api"
 
-    postgres_database_url: str = "postgresql://rag_user:rag_password@localhost:5432/rag_db"
+    postgres_database_url: str = ""
     postgres_echo_sql: bool = False
-    postgres_pool_size: int = 20
-    postgres_max_overflow: int = 0
+    postgres_pool_size: int = Field(default=20, ge=1, le=100)
+    postgres_max_overflow: int = Field(default=0, ge=0, le=100)
 
     ollama_host: str = "http://localhost:11434"
-    ollama_model: str = "llama3.2:1b"
-    ollama_timeout: int = 300
+    ollama_model: str = "gemma3:latest"
+    ollama_timeout: int = Field(default=300, ge=30, le=600)
 
     # Jina AI embeddings configuration
     jina_api_key: str = ""
+
+    # LLM resource limits
+    llm_max_tokens: int = Field(default=2048, ge=128, le=8192, description="Max tokens for LLM generation")
+    llm_max_concurrent: int = Field(default=10, ge=1, le=100, description="Max concurrent LLM requests")
+
+    # Rate limiting defaults
+    default_rate_limit: int = Field(default=60, ge=1, le=1000, description="Default requests per minute per API key")
+
+    # Request size limit
+    max_request_size_mb: int = Field(default=10, ge=1, le=100, description="Max request body size in MB")
+
+    # Feature flags for pipeline components
+    enable_semantic_cache: bool = Field(default=True, description="Enable semantic cache for RAG")
+    enable_exact_cache: bool = Field(default=True, description="Enable exact match cache for RAG")
+    enable_reranker: bool = Field(default=True, description="Enable reranker in search pipeline")
+    enable_hybrid_search: bool = Field(default=True, description="Enable hybrid BM25+vector search")
+    enable_langfuse_tracing: bool = Field(default=True, description="Enable Langfuse observability tracing")
+    enable_multimodal: bool = Field(default=False, description="Enable multimodal processing (figures extraction & indexing)")
+    enable_jwt_auth: bool = Field(default=False, description="Enable JWT-based user authentication")
+    enable_parent_child: bool = Field(default=True, description="Enable Parent-Child chunking strategy")
 
     arxiv: ArxivSettings = Field(default_factory=ArxivSettings)
     pdf_parser: PDFParserSettings = Field(default_factory=PDFParserSettings)
@@ -184,14 +254,51 @@ class Settings(BaseConfigSettings):
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
+    reranker: RerankerSettings = Field(default_factory=RerankerSettings)
+    jwt: JWTSettings = Field(default_factory=JWTSettings)
+    email: EmailSettings = Field(default_factory=EmailSettings)
 
     @field_validator("postgres_database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
+        if not v:
+            return v
         if not (v.startswith("postgresql://") or v.startswith("postgresql+psycopg2://")):
             raise ValueError("Database URL must start with 'postgresql://' or 'postgresql+psycopg2://'")
         return v
 
+    @field_validator("jina_api_key")
+    @classmethod
+    def validate_jina_key(cls, v: str) -> str:
+        if v and v != "your_jina_api_key_here" and not v.startswith("jina_"):
+            raise ValueError("Jina API key should start with 'jina_'")
+        return v
+
+    def log_safe_summary(self) -> dict:
+        """Return a safe summary of settings for logging (no secrets)."""
+        return {
+            "environment": self.environment,
+            "service_name": self.service_name,
+            "ollama_host": self.ollama_host,
+            "ollama_model": self.ollama_model,
+            "opensearch_host": self.opensearch.host,
+            "opensearch_index": self.opensearch.index_name,
+            "redis_host": self.redis.host,
+            "redis_port": self.redis.port,
+            "jina_api_key_set": bool(self.jina_api_key and self.jina_api_key != "your_jina_api_key_here"),
+            "langfuse_enabled": self.langfuse.enabled,
+            "telegram_enabled": self.telegram.enabled,
+            "enable_semantic_cache": self.enable_semantic_cache,
+            "enable_reranker": self.enable_reranker,
+        }
+
+
+_settings_cache: Settings | None = None
+
 
 def get_settings() -> Settings:
-    return Settings()
+    """Return a cached Settings singleton (Settings is frozen, safe to share)."""
+    global _settings_cache
+    if _settings_cache is None:
+        _settings_cache = Settings()
+    return _settings_cache

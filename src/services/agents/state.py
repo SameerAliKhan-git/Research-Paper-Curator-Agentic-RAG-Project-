@@ -3,7 +3,7 @@ from typing import Annotated, Any, Dict, List, Optional, TypedDict
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
-from .models import GradingResult, GuardrailScoring, RoutingDecision, SourceItem, ToolArtefact
+from .models import GradingResult, GuardrailScoring, RoutingDecision, SourceItem, ToolArtefact, VerificationResult
 
 
 class AgentState(TypedDict):
@@ -53,6 +53,18 @@ class AgentState(TypedDict):
         List of grading results for each retrieved document.
     :type grading_results: List[GradingResult]
 
+    :cvar verification_result:
+        Result of answer verification (hallucination guard).
+    :type verification_result: Optional[VerificationResult]
+
+    :cvar sub_queries:
+        List of simpler sub-queries decomposed from the main query.
+    :type sub_queries: Optional[List[str]]
+
+    :cvar is_grounded:
+        Whether the answer is grounded in context.
+    :type is_grounded: Optional[bool]
+
     :cvar metadata:
         Runtime metadata for tracing and analytics.
     :type metadata: Dict[str, Any]
@@ -68,4 +80,7 @@ class AgentState(TypedDict):
     relevant_sources: List[SourceItem]
     relevant_tool_artefacts: Optional[List[ToolArtefact]]
     grading_results: List[GradingResult]
+    verification_result: Optional[VerificationResult]
+    sub_queries: Optional[List[str]]
+    is_grounded: Optional[bool]
     metadata: Dict[str, Any]

@@ -55,7 +55,9 @@ class RAGPromptBuilder:
 
         prompt += f"### Question:\n{query}\n\n"
         prompt += (
-            "### Answer:\nProvide a natural, conversational response (not JSON) and cite sources using [arXiv:id] format.\n\n"
+            "### Answer:\n"
+            "You MUST first write your internal, step-by-step thinking process, source analysis, and reasoning steps inside <think>...</think> tags. "
+            "After closing with </think>, write your final response answering the question using the paper excerpts. Cite sources using [arXiv:id] format.\n\n"
         )
 
         return prompt

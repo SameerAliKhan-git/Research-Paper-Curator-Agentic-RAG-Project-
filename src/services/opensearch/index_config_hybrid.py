@@ -26,6 +26,7 @@ ARXIV_PAPERS_CHUNKS_MAPPING = {
             "chunk_id": {"type": "keyword"},
             "arxiv_id": {"type": "keyword"},
             "paper_id": {"type": "keyword"},
+            "tenant_id": {"type": "keyword"},
             "chunk_index": {"type": "integer"},
             "chunk_text": {
                 "type": "text",
@@ -63,6 +64,8 @@ ARXIV_PAPERS_CHUNKS_MAPPING = {
             "published_date": {"type": "date"},
             "section_title": {"type": "keyword"},
             "embedding_model": {"type": "keyword"},
+            "parent_id": {"type": "keyword"},
+            "parent_text": {"type": "text"},
             "created_at": {"type": "date"},
             "updated_at": {"type": "date"},
         },
@@ -108,3 +111,59 @@ HYBRID_SEARCH_PIPELINE = {
     ]
 }
 """
+
+ARXIV_PAPER_VISUAL_PAGES_INDEX = "arxiv-paper-visual-pages"
+
+ARXIV_PAPER_VISUAL_PAGES_MAPPING = {
+    "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "index.knn": True,
+        "index.knn.space_type": "cosinesimil",
+        "analysis": {
+            "analyzer": {
+                "standard_analyzer": {"type": "standard", "stopwords": "_english_"},
+                "text_analyzer": {"type": "custom", "tokenizer": "standard", "filter": ["lowercase", "stop", "snowball"]},
+            }
+        },
+    },
+    "mappings": {
+        "dynamic": "strict",
+        "properties": {
+            "page_id": {"type": "keyword"},
+            "arxiv_id": {"type": "keyword"},
+            "paper_id": {"type": "keyword"},
+            "tenant_id": {"type": "keyword"},
+            "page_number": {"type": "integer"},
+            "image_path": {"type": "keyword"},
+            "page_text": {
+                "type": "text",
+                "analyzer": "text_analyzer",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+            },
+            "visual_embedding": {
+                "type": "knn_vector",
+                "dimension": 512,
+                "method": {
+                    "name": "hnsw",
+                    "space_type": "cosinesimil",
+                    "engine": "nmslib",
+                    "parameters": {
+                        "ef_construction": 256,
+                        "m": 16,
+                    },
+                },
+            },
+            "layout_stats": {
+                "type": "object",
+                "properties": {
+                    "text_regions": {"type": "integer"},
+                    "tables": {"type": "integer"},
+                    "pictures": {"type": "integer"},
+                    "equations": {"type": "integer"},
+                }
+            },
+            "created_at": {"type": "date"},
+        },
+    },
+}

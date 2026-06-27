@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import TYPE_CHECKING, Annotated, Generator, Optional
 
 if TYPE_CHECKING:
@@ -13,22 +12,21 @@ else:
 
 from src.config import Settings
 from src.db.interfaces.base import BaseDatabase
+from src.services.agents.agentic_rag import AgenticRAGService
+from src.services.agents.factory import make_agentic_rag_service
 from src.services.arxiv.client import ArxivClient
+from src.services.auth.api_key_service import APIKeyMetadata, APIKeyService, require_api_key
 from src.services.cache.client import CacheClient
+from src.services.cache.semantic_cache import SemanticCache
 from src.services.embeddings.jina_client import JinaEmbeddingsClient
 from src.services.langfuse.client import LangfuseTracer
 from src.services.ollama.client import OllamaClient
 from src.services.opensearch.client import OpenSearchClient
 from src.services.pdf_parser.parser import PDFParserService
+from src.services.reranker.client import RerankerClient
 from src.services.telegram.bot import TelegramBot
-from src.services.agents.agentic_rag import AgenticRAGService
-from src.services.agents.factory import make_agentic_rag_service
-
-
-@lru_cache
-def get_settings() -> Settings:
-    """Get application settings."""
-    return Settings()
+from src.services.tenant import TenantContext, require_tenant
+from src.services.web_search import WebSearchService
 
 
 def get_request_settings(request: Request) -> Settings:
@@ -82,13 +80,18 @@ def get_cache_client(request: Request) -> CacheClient | None:
     return getattr(request.app.state, "cache_client", None)
 
 
+def get_semantic_cache(request: Request) -> Optional[SemanticCache]:
+    """Get semantic cache client from the request state."""
+    return getattr(request.app.state, "semantic_cache", None)
+
+
 def get_telegram_service(request: Request) -> Optional[TelegramBot]:
     """Get Telegram service from the request state."""
     return getattr(request.app.state, "telegram_service", None)
 
 
 # Dependency annotations
-SettingsDep = Annotated[Settings, Depends(get_settings)]
+SettingsDep = Annotated[Settings, Depends(get_request_settings)]
 DatabaseDep = Annotated[BaseDatabase, Depends(get_database)]
 SessionDep = Annotated[Session, Depends(get_db_session)]
 OpenSearchDep = Annotated[OpenSearchClient, Depends(get_opensearch_client)]
@@ -98,24 +101,57 @@ EmbeddingsDep = Annotated[JinaEmbeddingsClient, Depends(get_embeddings_service)]
 OllamaDep = Annotated[OllamaClient, Depends(get_ollama_client)]
 LangfuseDep = Annotated[LangfuseTracer, Depends(get_langfuse_tracer)]
 CacheDep = Annotated[CacheClient | None, Depends(get_cache_client)]
+SemanticCacheDep = Annotated[Optional[SemanticCache], Depends(get_semantic_cache)]
 TelegramDep = Annotated[Optional[TelegramBot], Depends(get_telegram_service)]
+APIKeyDep = Annotated[APIKeyMetadata, Depends(require_api_key)]
+TenantDep = Annotated[TenantContext, Depends(require_tenant)]
 
 
-def get_agentic_rag_service(
-    opensearch: OpenSearchDep,
-    ollama: OllamaDep,
-    embeddings: EmbeddingsDep,
-    langfuse: LangfuseDep,
-    settings: Annotated[Settings, Depends(get_settings)],
-) -> AgenticRAGService:
-    """Get agentic RAG service."""
-    return make_agentic_rag_service(
-        opensearch_client=opensearch,
-        ollama_client=ollama,
-        embeddings_client=embeddings,
-        langfuse_tracer=langfuse,
-        model=settings.ollama_model,
-    )
+def get_api_key_service(request: Request) -> Optional[APIKeyService]:
+    """Get API key service from the request state."""
+    return getattr(request.app.state, "api_key_service", None)
+
+
+APIKeyServiceDep = Annotated[Optional[APIKeyService], Depends(get_api_key_service)]
+
+
+def get_reranker_client(request: Request) -> Optional[RerankerClient]:
+    """Get reranker client from the request state."""
+    return getattr(request.app.state, "reranker_client", None)
+
+
+RerankerDep = Annotated[Optional[RerankerClient], Depends(get_reranker_client)]
+
+
+def get_agentic_rag_service(request: Request) -> AgenticRAGService:
+    """Get cached agentic RAG service from app state (avoids rebuilding graph per request).
+
+    The graph is expensive to build (involves LLM node compilation), so we
+    cache it at app.state.agentic_rag_service and rebuild only when the
+    service is first needed or explicitly reset.
+    """
+    service = getattr(request.app.state, "agentic_rag_service", None)
+    if service is None:
+        settings = request.app.state.settings
+        service = make_agentic_rag_service(
+            opensearch_client=request.app.state.opensearch_client,
+            ollama_client=request.app.state.ollama_client,
+            embeddings_client=request.app.state.embeddings_service,
+            langfuse_tracer=request.app.state.langfuse_tracer,
+            reranker_client=getattr(request.app.state, "reranker_client", None),
+            model=settings.ollama_model,
+        )
+        request.app.state.agentic_rag_service = service
+    return service
 
 
 AgenticRAGDep = Annotated[AgenticRAGService, Depends(get_agentic_rag_service)]
+
+
+def get_web_search_service(request: Request) -> WebSearchService:
+    """Get web search service from the request state."""
+    return request.app.state.web_search_service
+
+
+WebSearchDep = Annotated[WebSearchService, Depends(get_web_search_service)]
+

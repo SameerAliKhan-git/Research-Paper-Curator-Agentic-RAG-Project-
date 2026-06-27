@@ -1,0 +1,352 @@
+[
+  {
+    "query": "What are transformer architectures in deep learning?",
+    "expected_answer_keywords": ["transformer", "attention", "self-attention"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "How does BERT differ from GPT?",
+    "expected_answer_keywords": ["BERT", "GPT", "encoder", "decoder"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "What is reinforcement learning?",
+    "expected_answer_keywords": ["reinforcement", "reward", "agent", "policy"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "Explain convolutional neural networks",
+    "expected_answer_keywords": ["convolution", "CNN", "pooling", "feature"],
+    "expected_sources": [],
+    "category": "architectures",
+    "notes": ""
+  },
+  {
+    "query": "What are attention mechanisms?",
+    "expected_answer_keywords": ["attention", "query", "key", "value"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "What is the primary difference between Supervised and Unsupervised learning?",
+    "expected_answer_keywords": ["labeled", "labels", "unlabeled", "clustering"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "Explain the concept of Overfitting in machine learning models",
+    "expected_answer_keywords": ["overfitting", "generalization", "validation", "training"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What are the common techniques to prevent overfitting?",
+    "expected_answer_keywords": ["regularization", "dropout", "early stopping", "data augmentation"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "Explain L1 and L2 regularization",
+    "expected_answer_keywords": ["L1", "L2", "lasso", "ridge", "sparsity", "penalty"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is gradient descent and how does it work?",
+    "expected_answer_keywords": ["gradient descent", "optimization", "learning rate", "loss function"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is Stochastic Gradient Descent (SGD)?",
+    "expected_answer_keywords": ["SGD", "stochastic", "batch", "variance", "converge"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "How does Adam optimizer work?",
+    "expected_answer_keywords": ["Adam", "momentum", "learning rate", "adaptive", "RMSprop"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is backpropagation in neural networks?",
+    "expected_answer_keywords": ["backpropagation", "chain rule", "gradient", "weights", "error"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "Explain vanishing and exploding gradients",
+    "expected_answer_keywords": ["vanishing", "exploding", "gradients", "activation", "LSTM"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "How do Residual Connections help in training deep networks?",
+    "expected_answer_keywords": ["residual", "skip connections", "identity", "vanishing gradient"],
+    "expected_sources": [],
+    "category": "architectures",
+    "notes": ""
+  },
+  {
+    "query": "What is Batch Normalization?",
+    "expected_answer_keywords": ["batch normalization", "internal covariate shift", "mean", "variance"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "Compare LSTM and GRU architectures",
+    "expected_answer_keywords": ["LSTM", "GRU", "gating", "forget gate", "reset gate"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "What is the purpose of the self-attention mechanism?",
+    "expected_answer_keywords": ["self-attention", "sequence", "representation", "contextual"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "What is the difference between multi-head attention and single-head attention?",
+    "expected_answer_keywords": ["multi-head", "representation subspaces", "parallel", "attention"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "Explain the Feed-Forward network component in a Transformer block",
+    "expected_answer_keywords": ["feed-forward", "position-wise", "linear", "ReLU", "GELU"],
+    "expected_sources": [],
+    "category": "architectures",
+    "notes": ""
+  },
+  {
+    "query": "What is Layer Normalization in Transformers?",
+    "expected_answer_keywords": ["layer normalization", "normalize", "batch", "sequence"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "Why do Transformers require Positional Encodings?",
+    "expected_answer_keywords": ["positional encoding", "order", "sequence", "permutation invariant"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "Compare autoregressive models and autoencoding models",
+    "expected_answer_keywords": ["autoregressive", "autoencoding", "GPT", "BERT", "mask"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "What is the RoPE (Rotary Position Embedding) mechanism?",
+    "expected_answer_keywords": ["RoPE", "rotary", "relative position", "rotation matrix"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "How does FlashAttention optimize Transformer training?",
+    "expected_answer_keywords": ["FlashAttention", "SRAM", "HBM", "io complexity", "memory bound"],
+    "expected_sources": [],
+    "category": "core_concepts",
+    "notes": ""
+  },
+  {
+    "query": "Explain the concept of Mixture of Experts (MoE) in LLMs",
+    "expected_answer_keywords": ["Mixture of Experts", "MoE", "routing", "gate", "sparsity"],
+    "expected_sources": [],
+    "category": "architectures",
+    "notes": ""
+  },
+  {
+    "query": "What is Contrastive Learning?",
+    "expected_answer_keywords": ["contrastive", "anchor", "positive", "negative", "representations"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "How does Diffusion model generate images?",
+    "expected_answer_keywords": ["diffusion", "noise", "reverse process", "denoising"],
+    "expected_sources": [],
+    "category": "architectures",
+    "notes": ""
+  },
+  {
+    "query": "What is the role of the Value Network in Reinforcement Learning?",
+    "expected_answer_keywords": ["value network", "state value", "expected return", "Bellman"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is Policy Gradient methods in RL?",
+    "expected_answer_keywords": ["policy gradient", "REINFORCE", "optimization", "action space"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "Explain PPO (Proximal Policy Optimization)",
+    "expected_answer_keywords": ["PPO", "clipping", "surrogate objective", "policy ratio"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is Q-learning?",
+    "expected_answer_keywords": ["Q-learning", "temporal difference", "action-value", "off-policy"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "How does Deep Q-Networks (DQN) differ from standard Q-learning?",
+    "expected_answer_keywords": ["DQN", "experience replay", "target network", "neural network"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "Explain Actor-Critic methods in RL",
+    "expected_answer_keywords": ["Actor-Critic", "policy", "value function", "advantage"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is the curse of dimensionality?",
+    "expected_answer_keywords": ["dimensionality", "distance metric", "volume", "sparsity"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "Compare PCA and t-SNE for dimensionality reduction",
+    "expected_answer_keywords": ["PCA", "t-SNE", "linear", "non-linear", "local structure"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "What is Hierarchical Clustering?",
+    "expected_answer_keywords": ["hierarchical", "dendrogram", "agglomerative", "divisive"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "Explain the concept of K-Means clustering",
+    "expected_answer_keywords": ["K-Means", "centroids", "inertia", "distance"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is the difference between Batch Gradient Descent and Mini-Batch Gradient Descent?",
+    "expected_answer_keywords": ["batch", "mini-batch", "epochs", "updates", "computation"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "Explain precision and recall metrics",
+    "expected_answer_keywords": ["precision", "recall", "false positive", "false negative", "F1 score"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is the ROC-AUC score?",
+    "expected_answer_keywords": ["ROC-AUC", "true positive rate", "false positive rate", "threshold"],
+    "expected_sources": [],
+    "category": "ml_basics",
+    "notes": ""
+  },
+  {
+    "query": "What is the difference between LLaMA and GPT-4?",
+    "expected_answer_keywords": ["LLaMA", "GPT-4", "open source", "proprietary", "parameters"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "What is the latest release details of Python packages?",
+    "expected_answer_keywords": [],
+    "expected_sources": [],
+    "category": "web_search",
+    "notes": ""
+  },
+  {
+    "query": "How do you make pasta carbonara?",
+    "expected_answer_keywords": [],
+    "expected_sources": [],
+    "category": "out_of_scope",
+    "notes": ""
+  },
+  {
+    "query": "Who won the latest soccer world cup?",
+    "expected_answer_keywords": [],
+    "expected_sources": [],
+    "category": "out_of_scope",
+    "notes": ""
+  },
+  {
+    "query": "Compare attention mechanisms in Vision Transformers and standard Transformers",
+    "expected_answer_keywords": ["ViT", "vision transformer", "patch", "self-attention"],
+    "expected_sources": [],
+    "category": "agentic",
+    "notes": ""
+  },
+  {
+    "query": "Explain how multi-query attention (MQA) and grouped-query attention (GQA) reduce KV cache size.",
+    "expected_answer_keywords": ["MQA", "GQA", "KV cache", "grouped query", "key-value heads"],
+    "expected_sources": [],
+    "category": "agentic",
+    "notes": ""
+  },
+  {
+    "query": "What are the core benefits of direct preference optimization (DPO) over RLHF?",
+    "expected_answer_keywords": ["DPO", "RLHF", "preference", "reward model", "reference policy"],
+    "expected_sources": [],
+    "category": "agentic",
+    "notes": ""
+  },
+  {
+    "query": "What is the difference between retrieval augmented generation and fine-tuning?",
+    "expected_answer_keywords": ["RAG", "fine-tuning", "parametric", "non-parametric", "external database"],
+    "expected_sources": [],
+    "category": "model_comparison",
+    "notes": ""
+  },
+  {
+    "query": "Describe the architecture of Graph Neural Networks (GNNs)",
+    "expected_answer_keywords": ["GNN", "graph", "message passing", "nodes", "edges", "adjacency"],
+    "expected_sources": [],
+    "category": "architectures",
+    "notes": ""
+  }
+]
