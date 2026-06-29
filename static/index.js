@@ -46,6 +46,32 @@ async function askAgentic() {
 
 let currentTab = 'python';
 
+// Helper function to handle authenticated fetch requests
+async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem('rag_token');
+    options.headers = options.headers || {};
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Always include X-API-Key and X-Tenant-ID as well
+    if (!options.headers['X-API-Key']) {
+        options.headers['X-API-Key'] = 'dev-test-key-999';
+    }
+    if (!options.headers['X-Tenant-ID']) {
+        options.headers['X-Tenant-ID'] = 'default';
+    }
+
+    const response = await fetch(url, options);
+    if (response.status === 401) {
+        // Redirect to auth page if unauthorized (token invalid or missing)
+        window.location.href = '/static/auth.html';
+        throw new Error('Unauthorized');
+    }
+    return response;
+}
+
+
 function switchCodeTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.code-tab').forEach(btn => {
@@ -129,12 +155,7 @@ function loadPapers() {
     const grid = document.getElementById('papers-grid');
     if (!grid) return;
 
-    fetch('/api/v1/papers', {
-        headers: {
-            'X-API-Key': 'dev-test-key-999',
-            'X-Tenant-ID': 'default'
-        }
-    })
+    apiFetch('/api/v1/papers')
         .then(response => {
             if (!response.ok) throw new Error('API down');
             return response.json();
@@ -198,7 +219,10 @@ function renderPapersList(papers, isMock) {
             </div>
             <div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
                 <span>by ${authors}</span>
-                ${pdfLinkHtml}
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    ${pdfLinkHtml}
+                    <span onclick="event.stopPropagation(); openCitationGraph('${paper.arxiv_id}', \`${paper.title.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" style="color: var(--color-primary); font-size: 11px; text-decoration: underline; cursor: pointer;">Graph</span>
+                </div>
             </div>
             <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
                 ${tagsHtml}
@@ -243,6 +267,42 @@ function renderCitationItem(src) {
 // ==========================================================================
 // Ingestion Pipeline Handler
 // ==========================================================================
+function pollIngestionStatus(arxivId, attempts = 0) {
+    const msg = document.getElementById('ingest-status-msg');
+    if (!msg) return;
+
+    if (attempts >= 30) { // 60 seconds max polling time (30 * 2s)
+        msg.textContent = 'Ingestion is taking longer than expected. Please check the Indexed Papers Registry.';
+        msg.style.color = 'var(--color-primary)';
+        setTimeout(() => { msg.textContent = ''; }, 5000);
+        loadPapers();
+        return;
+    }
+
+    apiFetch(`/api/v1/papers/check/${encodeURIComponent(arxivId)}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Status check failed');
+            return res.json();
+        })
+        .then(data => {
+            if (data.exists) {
+                msg.textContent = `✓ Ingested: "${data.title || arxivId}"`;
+                msg.style.color = 'var(--color-badge-success)';
+                const input = document.getElementById('ingest-arxiv-id');
+                if (input) input.value = '';
+                setTimeout(() => { msg.textContent = ''; }, 5000);
+                loadPapers();
+            } else {
+                // Keep polling
+                setTimeout(() => pollIngestionStatus(arxivId, attempts + 1), 2000);
+            }
+        })
+        .catch(err => {
+            console.error("Polling check failed, retrying...", err);
+            setTimeout(() => pollIngestionStatus(arxivId, attempts + 1), 2000);
+        });
+}
+
 function triggerPaperIngest() {
     const input = document.getElementById('ingest-arxiv-id');
     const msg = document.getElementById('ingest-status-msg');
@@ -255,26 +315,18 @@ function triggerPaperIngest() {
         return;
     }
 
-    msg.textContent = 'Ingesting paper...';
+    msg.textContent = '🔍 Downloading & parsing PDF...';
     msg.style.color = '#aaa';
 
-    fetch(`/api/v1/papers/ingest?arxiv_id=${encodeURIComponent(arxivId)}`, {
-        method: 'POST',
-        headers: {
-            'X-API-Key': 'dev-test-key-999',
-            'X-Tenant-ID': 'default'
-        }
+    apiFetch(`/api/v1/papers/ingest?arxiv_id=${encodeURIComponent(arxivId)}`, {
+        method: 'POST'
     })
     .then(res => {
         if (!res.ok) throw new Error('Ingest service error');
         return res.json();
     })
     .then(data => {
-        msg.textContent = '✓ Ingested successfully!';
-        msg.style.color = 'var(--color-badge-success)';
-        input.value = '';
-        setTimeout(() => { msg.textContent = ''; }, 3000);
-        loadPapers();
+        pollIngestionStatus(arxivId);
     })
     .catch(err => {
         console.error(err);
@@ -297,6 +349,17 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
+let currentThinkingDuration = 0;
+let thinkingInterval = null;
+
+function toggleThinkingBox(header) {
+    const box = header.closest('.deepseek-thinking-box');
+    if (box) {
+        box.classList.toggle('collapsed');
+    }
+}
+window.toggleThinkingBox = toggleThinkingBox;
+
 function renderStreamedResponse(text, answerBodyElement) {
     let thinkingText = '';
     let finalAnswerText = '';
@@ -315,15 +378,28 @@ function renderStreamedResponse(text, answerBodyElement) {
         finalAnswerText = text;
     }
     
+    const isThinkingDone = thinkEnd !== -1;
+    if (isThinkingDone && thinkingInterval) {
+        clearInterval(thinkingInterval);
+        thinkingInterval = null;
+    }
+    
     let html = '';
-    if (thinkingText) {
+    if (thinkingText || (thinkStart !== -1 && !isThinkingDone)) {
+        const durationStr = currentThinkingDuration > 0 ? `thought for ${currentThinkingDuration}s` : 'thinking...';
         html += `
-            <div class="thinking-container" style="background: rgba(255, 255, 255, 0.02); border-left: 3px solid var(--color-primary); padding: 12px 16px; margin-bottom: 14px; border-radius: 0 8px 8px 0; font-size: 13.5px; color: #a0a0a0; box-shadow: inset 2px 0 0 rgba(0,0,0,0.5);">
-                <div style="font-weight: bold; color: var(--color-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" class="pulse-icon" style="animation: brain-pulse 1.6s infinite; display: inline-block; vertical-align: middle;"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z"/></svg>
-                    Thinking Process
+            <div class="deepseek-thinking-box" id="thinking-box">
+                <div class="deepseek-thinking-header" onclick="toggleThinkingBox(this)">
+                    <div class="deepseek-thinking-title">
+                        <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" class="pulse-icon" style="color: var(--color-primary); display: inline-block; vertical-align: middle;"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z"/></svg>
+                        <span>Agentic Thinking Process</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="deepseek-thinking-duration">${durationStr}</span>
+                        <span class="deepseek-thinking-toggle-icon">▼</span>
+                    </div>
                 </div>
-                <div style="font-style: italic; line-height: 1.5; white-space: pre-wrap; font-family: var(--font-body);">${escapeHtml(thinkingText)}</div>
+                <div class="deepseek-thinking-content">${escapeHtml(thinkingText || 'Formulating agentic query path...')}</div>
             </div>
         `;
     }
@@ -332,6 +408,7 @@ function renderStreamedResponse(text, answerBodyElement) {
     }
     answerBodyElement.innerHTML = html;
 }
+
 
 
 async function executeRAG() {
@@ -385,6 +462,18 @@ async function executeRAG() {
     statusDot.style.background = '#ffc000';
     statusDot.style.boxShadow = '0 0 8px #ffc000';
     latencyLabel.textContent = 'running...';
+
+    // Initialize thinking duration timer
+    currentThinkingDuration = 0;
+    if (thinkingInterval) clearInterval(thinkingInterval);
+    thinkingInterval = setInterval(() => {
+        currentThinkingDuration++;
+        const durationElements = document.querySelectorAll('.deepseek-thinking-duration');
+        durationElements.forEach(el => {
+            el.textContent = `thought for ${currentThinkingDuration}s`;
+        });
+    }, 1000);
+
 
     // 2. Append Agent Message Bubble
     const agentMsg = document.createElement('div');
@@ -440,12 +529,10 @@ async function executeRAG() {
             search_mode: "auto"
         };
 
-        const response = await fetch('/api/v1/stream', {
+        const response = await apiFetch('/api/v1/stream', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': 'dev-test-key-999',
-                'X-Tenant-ID': 'default'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
@@ -472,12 +559,31 @@ async function executeRAG() {
                     const dataStr = line.slice(6).trim();
                     if (!dataStr) continue;
 
+                    let parsed;
                     try {
-                        const parsed = JSON.parse(dataStr);
+                        parsed = JSON.parse(dataStr);
+                    } catch (e) {
+                        // ignore malformed chunks
+                        continue;
+                    }
 
-                        if (parsed.error) {
-                            throw new Error(parsed.error);
+                    if (parsed.error) {
+                        activityDiv.style.display = 'none';
+                        answerBody.innerHTML = `<p style="color: var(--color-primary); margin:0;">Error: ${parsed.error}</p>`;
+                        statusText.textContent = 'Failed';
+                        statusDot.className = 'status-dot warning';
+                        statusDot.style.background = '#ea2804';
+                        statusDot.style.boxShadow = '0 0 8px #ea2804';
+                        latencyLabel.textContent = '-- ms';
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                        if (thinkingInterval) {
+                            clearInterval(thinkingInterval);
+                            thinkingInterval = null;
                         }
+                        return; // Stop stream processing
+                    }
+
+                    try {
 
                         // 1. Process steps (Thought process)
                         if (parsed.step) {
@@ -543,6 +649,10 @@ async function executeRAG() {
                         // 6. Process completion
                         if (parsed.done) {
                             activityDiv.style.display = 'none';
+                            if (thinkingInterval) {
+                                clearInterval(thinkingInterval);
+                                thinkingInterval = null;
+                            }
                             if (parsed.answer && parsed.answer !== currentText) {
                                 renderStreamedResponse(parsed.answer, answerBody);
                             } else {
@@ -570,6 +680,10 @@ async function executeRAG() {
             }
         }
     } catch (err) {
+        if (thinkingInterval) {
+            clearInterval(thinkingInterval);
+            thinkingInterval = null;
+        }
         activityDiv.style.display = 'none';
         answerBody.innerHTML = `<p style="color: var(--color-primary); margin:0;">Connection error: ${err.message}. Ensure backend RAG API server is started.</p>`;
         statusText.textContent = 'Failed';
@@ -579,6 +693,7 @@ async function executeRAG() {
         latencyLabel.textContent = '-- ms';
         chatHistory.scrollTop = chatHistory.scrollHeight;
     }
+
 }
 
 // Simple Helper to convert Markdown italics/bold/newlines into clean HTML
@@ -601,12 +716,10 @@ function submitFeedback(score) {
     const feedbackStatus = document.getElementById('feedback-status');
     feedbackStatus.textContent = 'Submitting...';
 
-    fetch('/api/v1/feedback', {
+    apiFetch('/api/v1/feedback', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': 'dev-test-key-999',
-            'X-Tenant-ID': 'default'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({
             trace_id: currentTraceId,
@@ -641,7 +754,11 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 
-    switchCodeTab('python');
+    // Redirect if token is not present
+    if (!localStorage.getItem('rag_token')) {
+        window.location.href = '/static/auth.html';
+        return;
+    }
     loadPapers();
 
     const runBtn = document.getElementById('run-query-btn');
@@ -689,4 +806,158 @@ document.addEventListener('DOMContentLoaded', () => {
     if (downBtn) {
         downBtn.addEventListener('click', () => submitFeedback(-1.0));
     }
+
+    // Collapsible sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const chatSidebar = document.getElementById('chat-sidebar');
+    if (sidebarToggle && chatSidebar) {
+        sidebarToggle.addEventListener('click', () => {
+            chatSidebar.classList.toggle('collapsed');
+        });
+    }
 });
+
+// ==========================================================================
+// D3.js Citation Graph Visualization
+// ==========================================================================
+function openCitationGraph(arxivId, title) {
+    const modal = document.getElementById('citation-modal');
+    if (!modal) return;
+
+    document.getElementById('citation-modal-title').textContent = `Citation Network: ${title}`;
+    modal.style.display = 'flex';
+
+    const container = document.getElementById('citation-graph-svg-container');
+    container.innerHTML = ''; // Clear previous SVG
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // Create SVG
+    const svg = d3.select('#citation-graph-svg-container')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .style('cursor', 'grab');
+
+    const g = svg.append('g');
+
+    // Add zoom behavior
+    svg.call(d3.zoom().on('zoom', (event) => {
+        g.attr('transform', event.transform);
+    }));
+
+    // Fetch citations from API
+    apiFetch(`/api/v1/papers/${arxivId}/citations`)
+        .then(res => {
+            if (!res.ok) throw new Error('Citations not found');
+            return res.json();
+        })
+        .then(graphData => {
+            // Draw graph using D3
+            const nodes = graphData.nodes.map(n => ({ id: n.id, title: n.title }));
+            const links = graphData.edges.map(e => ({ source: e.source, target: e.target }));
+
+            // Setup simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(150))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+
+            // Arrow marker for link direction
+            svg.append('defs').append('marker')
+                .attr('id', 'arrow')
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 20) // Position along line
+                .attr('refY', 0)
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('d', 'M0,-5L10,0L0,5')
+                .attr('fill', '#444');
+
+            // Draw links
+            const link = g.append('g')
+                .selectAll('line')
+                .data(links)
+                .join('line')
+                .attr('stroke', '#333')
+                .attr('stroke-width', 1.5)
+                .attr('marker-end', 'url(#arrow)');
+
+            // Draw nodes
+            const node = g.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .join('g')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended)
+                );
+
+            // Node circles
+            node.append('circle')
+                .attr('r', d => d.id === arxivId ? 10 : 7)
+                .attr('fill', d => d.id === arxivId ? '#ea2804' : '#555')
+                .attr('stroke', d => d.id === arxivId ? '#fff' : '#222')
+                .attr('stroke-width', 1.5);
+
+            // Node text labels
+            node.append('text')
+                .attr('dx', 12)
+                .attr('dy', 4)
+                .text(d => d.title.length > 30 ? d.title.slice(0, 27) + '...' : d.title)
+                .attr('fill', '#ccc')
+                .attr('font-size', '11px')
+                .attr('font-family', 'sans-serif')
+                .style('pointer-events', 'none')
+                .style('text-shadow', '0 1px 4px rgba(0,0,0,0.8)');
+
+            // Node hover tooltips
+            node.append('title')
+                .text(d => `${d.title}\n(${d.id})`);
+
+            // Tick updates
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+            });
+
+            // Drag helpers
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load citation graph data:', err);
+            container.innerHTML = `<div style="color: #ea2804; text-align: center; padding: 100px;">Failed to load citation graph: ${err.message}</div>`;
+        });
+}
+
+function closeCitationGraph() {
+    const modal = document.getElementById('citation-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}

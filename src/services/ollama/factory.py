@@ -1,16 +1,17 @@
 from functools import lru_cache
 
 from src.config import get_settings
-from src.services.ollama.client import OllamaClient
+from src.services.ollama.unified_client import UnifiedLLMClient
 
 
 @lru_cache(maxsize=1)
-def make_ollama_client() -> OllamaClient:
+def make_ollama_client() -> UnifiedLLMClient:
     """
-    Create and return a singleton Ollama client instance.
+    Create and return a singleton Unified LLM client instance (supporting Ollama and Gemini).
 
     Returns:
-        OllamaClient: Configured Ollama client
+        UnifiedLLMClient: Configured Unified LLM client
     """
     settings = get_settings()
-    return OllamaClient(settings)
+    return UnifiedLLMClient(settings)
+

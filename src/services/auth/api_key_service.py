@@ -242,6 +242,32 @@ async def require_api_key(
         ):
             return {"user": key.user_id}
     """
+    # Check if JWT Authorization header is present and valid
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        jwt_token = auth_header.split(" ")[1]
+        from src.services.auth.jwt_service import verify_token
+        payload = verify_token(jwt_token)
+        if payload:
+            email = payload.get("sub")
+            if email:
+                # User authenticated successfully via JWT
+                key_hash = hashlib.sha256(jwt_token.encode()).hexdigest()
+                metadata = APIKeyMetadata(
+                    key_hash=key_hash,
+                    user_id=email,
+                    tier="premium",
+                    rate_limit=120,
+                    quota_remaining=-1,
+                    tenants=["default", "research-tenant"]
+                )
+                request.state.api_key_metadata = metadata
+                return metadata
+            else:
+                raise HTTPException(status_code=401, detail="Token missing user identity")
+        else:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
     service: Optional[APIKeyService] = getattr(request.app.state, "api_key_service", None)
 
     # If auth service is not initialized (e.g. no Redis), fail closed — deny access
@@ -252,7 +278,7 @@ async def require_api_key(
         )
 
     if x_api_key is None:
-        raise HTTPException(status_code=401, detail="Missing X-API-Key header")
+        raise HTTPException(status_code=401, detail="Missing X-API-Key or Authorization header")
 
     metadata = await service.validate_key(x_api_key)
     if metadata is None:

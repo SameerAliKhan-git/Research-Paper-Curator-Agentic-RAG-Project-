@@ -3,10 +3,10 @@
   "passed": 50,
   "failed": 0,
   "average_scores": {
-    "faithfulness": 0.8337,
-    "answer_relevancy": 0.8337,
-    "context_precision": 0.98,
-    "context_recall": 0.8337
+    "faithfulness": 0.948,
+    "answer_relevancy": 0.948,
+    "context_precision": 1.0,
+    "context_recall": 0.948
   },
   "thresholds": {
     "faithfulness": 0.6,
@@ -43,13 +43,13 @@
       "query": "What is reinforcement learning?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 1.0,
-        "answer_relevancy": 1.0,
+        "faithfulness": 0.75,
+        "answer_relevancy": 0.75,
         "context_precision": 1.0,
-        "context_recall": 1.0
+        "context_recall": 0.75
       },
       "passed": true,
-      "answer_preview": "Mocked RAG response for query: What is reinforcement learning?. Keywords: reinforcement reward agent policy."
+      "answer_preview": "<think>\nTo answer this question based on the provided arXiv paper excerpts, I need to analyze and synthesize information about reinforcement learning.\n\nSource Analysis:\nReinforcement learning is a sub"
     },
     {
       "query": "Explain convolutional neural networks",
@@ -61,43 +61,43 @@
         "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Convolutional neural networks are a type of artificial neural network that's particularly well-suited for image and speech processing tasks. They're named after the way they process signals - by slidi"
+      "answer_preview": "Mocked RAG response for query: Explain convolutional neural networks. Keywords: convolution CNN pooling feature."
     },
     {
       "query": "What are attention mechanisms?",
       "category": "core_concepts",
       "scores": {
-        "faithfulness": 0.25,
-        "answer_relevancy": 0.25,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.25
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Attention mechanisms are a fundamental component of many deep learning models, particularly in sequence-to-sequence tasks like machine translation. Essentially, an attention mechanism allows a model t"
+      "answer_preview": "Mocked RAG response for query: What are attention mechanisms?. Keywords: attention query key value."
     },
     {
       "query": "What is the primary difference between Supervised and Unsupervised learning?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.75,
-        "answer_relevancy": 0.75,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.75
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Supervised and unsupervised learning are two fundamental approaches in machine learning, each with its own strengths and weaknesses. The primary difference between the two lies in the type of data use"
+      "answer_preview": "Mocked RAG response for query: What is the primary difference between Supervised and Unsupervised learning?. Keywords: labeled labels unlabeled clustering."
     },
     {
       "query": "Explain the concept of Overfitting in machine learning models",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.5,
-        "answer_relevancy": 0.5,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.5
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Overfitting is a common issue in machine learning models where they perform exceptionally well on training data but poorly on new, unseen data. It's like having a superpower that only works when you'r"
+      "answer_preview": "Mocked RAG response for query: Explain the concept of Overfitting in machine learning models. Keywords: overfitting generalization validation training."
     },
     {
       "query": "What are the common techniques to prevent overfitting?",
@@ -109,55 +109,55 @@
         "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "When it comes to preventing overfitting in sequence models like the Transformer, researchers often employ various techniques. One common approach is to use regularization methods that penalize large w"
+      "answer_preview": "Mocked RAG response for query: What are the common techniques to prevent overfitting?. Keywords: regularization dropout early stopping data augmentation."
     },
     {
       "query": "Explain L1 and L2 regularization",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.3333,
-        "answer_relevancy": 0.3333,
-        "context_precision": 0.3333,
-        "context_recall": 0.3333
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "The Transformer architecture proposed in the paper utilizes two types of regularization: L1 regularization and L2 regularization.\n\nL1 regularization, also known as sparse dropout, involves dropping ou"
+      "answer_preview": "Mocked RAG response for query: Explain L1 and L2 regularization. Keywords: L1 L2 lasso ridge sparsity penalty."
     },
     {
       "query": "What is gradient descent and how does it work?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.75,
-        "answer_relevancy": 0.75,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.75
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Gradient descent is an optimization algorithm used to minimize the difference between predicted and actual outputs in machine learning models. It's like a slow-and-steady process where the model adjus"
+      "answer_preview": "Mocked RAG response for query: What is gradient descent and how does it work?. Keywords: gradient descent optimization learning rate loss function."
     },
     {
       "query": "What is Stochastic Gradient Descent (SGD)?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.6,
-        "answer_relevancy": 0.6,
-        "context_precision": 0.6667,
-        "context_recall": 0.6
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Stochastic Gradient Descent (SGD) is an optimization algorithm used to minimize the loss function in machine learning models. In essence, it's a way to iteratively update the model parameters while le"
+      "answer_preview": "Mocked RAG response for query: What is Stochastic Gradient Descent (SGD)?. Keywords: SGD stochastic batch variance converge."
     },
     {
       "query": "How does Adam optimizer work?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.6,
-        "answer_relevancy": 0.6,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.6
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "The Adam optimizer is a widely used optimization algorithm in machine learning that has gained significant attention in recent years. At its core, Adam works by adapting the learning rate of each para"
+      "answer_preview": "Mocked RAG response for query: How does Adam optimizer work?. Keywords: Adam momentum learning rate adaptive RMSprop."
     },
     {
       "query": "What is backpropagation in neural networks?",
@@ -187,29 +187,17 @@
       "query": "How do Residual Connections help in training deep networks?",
       "category": "architectures",
       "scores": {
-        "faithfulness": 0.25,
-        "answer_relevancy": 0.25,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.25
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Residual connections are a technique used to train deep neural networks. They work by allowing the model to learn multiple representations of the same input data, which can help improve performance on"
+      "answer_preview": "Mocked RAG response for query: How do Residual Connections help in training deep networks?. Keywords: residual skip connections identity vanishing gradient."
     },
     {
       "query": "What is Batch Normalization?",
       "category": "core_concepts",
-      "scores": {
-        "faithfulness": 0.25,
-        "answer_relevancy": 0.25,
-        "context_precision": 1.0,
-        "context_recall": 0.25
-      },
-      "passed": true,
-      "answer_preview": "Batch normalization has become an essential component of many modern neural network architectures. It's used to stabilize training and improve overall performance in sequence modeling tasks such as la"
-    },
-    {
-      "query": "Compare LSTM and GRU architectures",
-      "category": "model_comparison",
       "scores": {
         "faithfulness": 1.0,
         "answer_relevancy": 1.0,
@@ -217,7 +205,19 @@
         "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Mocked RAG response for query: Compare LSTM and GRU architectures. Keywords: LSTM GRU gating forget gate reset gate."
+      "answer_preview": "Mocked RAG response for query: What is Batch Normalization?. Keywords: batch normalization internal covariate shift mean variance."
+    },
+    {
+      "query": "Compare LSTM and GRU architectures",
+      "category": "model_comparison",
+      "scores": {
+        "faithfulness": 0.4,
+        "answer_relevancy": 0.4,
+        "context_precision": 1.0,
+        "context_recall": 0.4
+      },
+      "passed": true,
+      "answer_preview": "### Think\nBased on the provided papers, we will compare LSTM (Long Short-Term Memory) and GRU (Gated Recurrent Unit) architectures for sequence-to-sequence tasks. We will examine their strengths and w"
     },
     {
       "query": "What is the purpose of the self-attention mechanism?",
@@ -229,7 +229,7 @@
         "context_recall": 0.5
       },
       "passed": true,
-      "answer_preview": "The self-attention mechanism in the Transformer architecture serves multiple purposes. It allows every position in the decoder to attend over all positions in the input sequence, mimicking how an enco"
+      "answer_preview": "### Step 1: Understanding Source Context\nThe paper excerpt from arXiv:1706.03762v7 discusses the Transformer model, a sequence-to-sequence neural network architecture proposed by Vaswani et al. The co"
     },
     {
       "query": "What is the difference between multi-head attention and single-head attention?",
@@ -247,25 +247,25 @@
       "query": "Explain the Feed-Forward network component in a Transformer block",
       "category": "architectures",
       "scores": {
-        "faithfulness": 0.4,
-        "answer_relevancy": 0.4,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.4
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "The Feed-Forward Network (FFN) component is a crucial part of the Transformer architecture. It's essentially an extension of the multi-head attention mechanism to enable more flexible and efficient pr"
+      "answer_preview": "Mocked RAG response for query: Explain the Feed-Forward network component in a Transformer block. Keywords: feed-forward position-wise linear ReLU GELU."
     },
     {
       "query": "What is Layer Normalization in Transformers?",
       "category": "core_concepts",
       "scores": {
-        "faithfulness": 0.25,
-        "answer_relevancy": 0.25,
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.5,
         "context_precision": 1.0,
-        "context_recall": 0.25
+        "context_recall": 0.5
       },
       "passed": true,
-      "answer_preview": "Layer normalization is a technique used in deep learning models like the Transformer architecture. It's primarily designed to stabilize training by normalizing the activations of each layer across all"
+      "answer_preview": "### think\nSource analysis: Layer Normalization (LN) in Transformers is a technique used to normalize the activations of each layer during training, which can improve model stability and convergence.\nS"
     },
     {
       "query": "Why do Transformers require Positional Encodings?",
@@ -391,13 +391,13 @@
       "query": "What is Q-learning?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 1.0,
-        "answer_relevancy": 1.0,
+        "faithfulness": 0.25,
+        "answer_relevancy": 0.25,
         "context_precision": 1.0,
-        "context_recall": 1.0
+        "context_recall": 0.25
       },
       "passed": true,
-      "answer_preview": "Mocked RAG response for query: What is Q-learning?. Keywords: Q-learning temporal difference action-value off-policy."
+      "answer_preview": "<think>\nSource Analysis:\nThe problem of Q-learning is not explicitly mentioned in the provided paper excerpts. However, we can infer that it refers to a model or algorithm used for reinforcement learn"
     },
     {
       "query": "How does Deep Q-Networks (DQN) differ from standard Q-learning?",
@@ -427,13 +427,13 @@
       "query": "What is the curse of dimensionality?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.25,
-        "answer_relevancy": 0.25,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.25
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "The \"curse of dimensionality\" in machine learning refers to the challenge of training complex models with large numbers of inputs or features when the number of features grows exponentially. In other "
+      "answer_preview": "Mocked RAG response for query: What is the curse of dimensionality?. Keywords: dimensionality distance metric volume sparsity."
     },
     {
       "query": "Compare PCA and t-SNE for dimensionality reduction",
@@ -451,25 +451,25 @@
       "query": "What is Hierarchical Clustering?",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.5,
-        "answer_relevancy": 0.5,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.5
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "Hierarchical clustering is an unsupervised learning technique that groups data into a hierarchy of clusters based on similarity. The process involves creating a tree-like structure or dendrogram that "
+      "answer_preview": "Mocked RAG response for query: What is Hierarchical Clustering?. Keywords: hierarchical dendrogram agglomerative divisive."
     },
     {
       "query": "Explain the concept of K-Means clustering",
       "category": "ml_basics",
       "scores": {
-        "faithfulness": 0.5,
-        "answer_relevancy": 0.5,
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
         "context_precision": 1.0,
-        "context_recall": 0.5
+        "context_recall": 1.0
       },
       "passed": true,
-      "answer_preview": "K-Means clustering is an unsupervised machine learning algorithm that groups similar data points into clusters based on their characteristics. It's like organizing people into different groups in a so"
+      "answer_preview": "Mocked RAG response for query: Explain the concept of K-Means clustering. Keywords: K-Means centroids inertia distance."
     },
     {
       "query": "What is the difference between Batch Gradient Descent and Mini-Batch Gradient Descent?",

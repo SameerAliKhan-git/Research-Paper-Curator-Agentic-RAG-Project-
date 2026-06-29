@@ -6,7 +6,7 @@ from typing import Dict, List
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from src.database import get_db_session
-from src.dependencies import APIKeyDep, CacheDep, EmbeddingsDep, LangfuseDep, OllamaDep, OpenSearchDep, RerankerDep, SemanticCacheDep, TenantDep, WebSearchDep
+from src.dependencies import APIKeyDep, CacheDep, EmbeddingsDep, LangfuseDep, OllamaDep, OpenSearchDep, RerankerDep, SemanticCacheDep, TenantDep, WebSearchDep, ConversationMemoryDep
 from src.exceptions import OllamaConnectionError, OllamaException, OllamaTimeoutError
 from src.repositories.conversation import ConversationRepository
 from src.schemas.api.ask import AskRequest, AskResponse
@@ -85,11 +85,12 @@ async def classify_query_mode_with_llm(query: str, ollama_client, model: str) ->
         "Respond with ONLY the mode name in lowercase ('colpali', 'web_search', 'agentic', or 'hybrid') and absolutely nothing else."
     )
     try:
-        response = await ollama_client.generate_answer(
-            prompt=f"System: {system_prompt}\nUser Query: {query}\nClassification:",
-            model=model
+        response_data = await ollama_client.generate(
+            model=model,
+            prompt=f"System: {system_prompt}\nUser Query: {query}\nClassification:"
         )
-        response_clean = response.strip().lower()
+        response_text = response_data.get("response", "") if response_data else ""
+        response_clean = response_text.strip().lower()
         for valid_mode in ["colpali", "web_search", "agentic", "hybrid"]:
             if valid_mode in response_clean:
                 logger.info(f"Classified query as {valid_mode} via LLM: {query}")
@@ -248,6 +249,7 @@ async def ask_question(
     semantic_cache: SemanticCacheDep,
     tenant: TenantDep,
     web_search_service: WebSearchDep,
+    conversation_memory: ConversationMemoryDep,
     reranker_client: RerankerDep = None,
 ) -> AskResponse:
     """Clean RAG endpoint with essential tracing, exact match caching, and semantic caching."""
@@ -416,10 +418,11 @@ async def ask_question(
 
             # Retrieve conversation history if session_id provided
             conversation_history = []
-            if request.session_id:
-                with get_db_session() as db_session:
-                    repo = ConversationRepository(db_session)
-                    conversation_history = repo.get_history(request.session_id, limit=10)
+            if request.session_id and conversation_memory:
+                try:
+                    conversation_history = await conversation_memory.get_history(request.session_id, limit=10)
+                except Exception as e:
+                    logger.warning(f"Failed to fetch conversation history from service: {e}")
 
             # Build prompt
             with rag_tracer.trace_prompt_construction(trace, chunks) as prompt_span:
@@ -448,12 +451,10 @@ async def ask_question(
                 rag_tracer.end_generation(gen_span, answer, request.model)
 
             # Store Q&A in conversation history
-            if request.session_id:
+            if request.session_id and conversation_memory:
                 try:
-                    with get_db_session() as db_session:
-                        repo = ConversationRepository(db_session)
-                        repo.create_or_append(request.session_id, "user", request.query)
-                        repo.create_or_append(request.session_id, "assistant", answer)
+                    await conversation_memory.add_message(request.session_id, "user", request.query)
+                    await conversation_memory.add_message(request.session_id, "assistant", answer)
                 except Exception as e:
                     logger.warning(f"Failed to store conversation history: {e}")
 

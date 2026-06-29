@@ -155,3 +155,15 @@ def get_web_search_service(request: Request) -> WebSearchService:
 
 WebSearchDep = Annotated[WebSearchService, Depends(get_web_search_service)]
 
+
+def get_conversation_memory_service(request: Request):
+    """Get conversation memory service from the request state."""
+    from src.services.conversation_memory import ConversationMemoryService
+    return request.app.state.conversation_memory_service
+
+
+ConversationMemoryDep = Annotated[
+    any, Depends(get_conversation_memory_service)
+]
+
+

@@ -59,18 +59,31 @@ class OllamaClient:
         )
 
     def _resolve_model(self, requested: str) -> str:
-        """Return *requested* if available locally, else the default fallback."""
+        """Return *requested* if available locally, else a cleaned or fallback version."""
         try:
             import httpx as _httpx
 
             with _httpx.Client(timeout=5.0) as c:
                 resp = c.get(f"{self.base_url}/api/tags")
                 models = [m["name"] for m in resp.json().get("models", [])]
-                if any(requested in name for name in models):
+                
+                # 1. Exact match
+                if requested in models:
                     return requested
+                
+                # 2. Case-insensitive substring match
+                for m in models:
+                    if requested.lower() in m.lower() or m.lower() in requested.lower():
+                        return m
+                
+                # 3. Clean suffix and match (e.g. gemma4-cloud -> gemma4)
+                clean_requested = requested.lower().replace("-cloud", "").replace("_cloud", "").split(":")[0]
+                for m in models:
+                    if clean_requested in m.lower():
+                        return m
             logger.warning(f"Model '{requested}' not found locally, falling back to llama3.2:1b")
-        except Exception:
-            logger.warning("Could not verify model availability, falling back to llama3.2:1b")
+        except Exception as e:
+            logger.warning(f"Could not verify model availability: {e}, falling back to llama3.2:1b")
         return "llama3.2:1b"
 
     async def health_check(self) -> Dict[str, Any]:
@@ -155,9 +168,10 @@ class OllamaClient:
         """
         try:
             client = await self._get_client()
-            data = {"model": model, "prompt": prompt, "stream": stream, **kwargs}
+            resolved_model = self._resolve_model(model)
+            data = {"model": resolved_model, "prompt": prompt, "stream": stream, **kwargs}
 
-            logger.info(f"Sending request to Ollama: model={model}, stream={stream}")
+            logger.info(f"Sending request to Ollama: model={resolved_model}, stream={stream}")
             response = await client.post(f"{self.base_url}/api/generate", json=data)
 
             if response.status_code == 200:
@@ -220,9 +234,10 @@ class OllamaClient:
         """
         try:
             client = await self._get_client()
-            data = {"model": model, "prompt": prompt, "stream": True, **kwargs}
+            resolved_model = self._resolve_model(model)
+            data = {"model": resolved_model, "prompt": prompt, "stream": True, **kwargs}
 
-            logger.info(f"Starting streaming generation: model={model}")
+            logger.info(f"Starting streaming generation: model={resolved_model}")
 
             async with client.stream("POST", f"{self.base_url}/api/generate", json=data) as response:
                 if response.status_code != 200:

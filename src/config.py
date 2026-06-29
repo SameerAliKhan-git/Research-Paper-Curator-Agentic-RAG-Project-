@@ -227,6 +227,10 @@ class Settings(BaseConfigSettings):
     # Jina AI embeddings configuration
     jina_api_key: str = ""
 
+    # Google Gemini cloud LLM configuration
+    gemini_api_key: str = ""
+    llm_provider: str = "ollama"  # ollama or gemini
+
     # LLM resource limits
     llm_max_tokens: int = Field(default=2048, ge=128, le=8192, description="Max tokens for LLM generation")
     llm_max_concurrent: int = Field(default=10, ge=1, le=100, description="Max concurrent LLM requests")
@@ -244,7 +248,7 @@ class Settings(BaseConfigSettings):
     enable_hybrid_search: bool = Field(default=True, description="Enable hybrid BM25+vector search")
     enable_langfuse_tracing: bool = Field(default=True, description="Enable Langfuse observability tracing")
     enable_multimodal: bool = Field(default=False, description="Enable multimodal processing (figures extraction & indexing)")
-    enable_jwt_auth: bool = Field(default=False, description="Enable JWT-based user authentication")
+    enable_jwt_auth: bool = Field(default=True, description="Enable JWT-based user authentication")
     enable_parent_child: bool = Field(default=True, description="Enable Parent-Child chunking strategy")
 
     arxiv: ArxivSettings = Field(default_factory=ArxivSettings)

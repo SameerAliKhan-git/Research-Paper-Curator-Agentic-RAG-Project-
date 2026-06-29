@@ -309,3 +309,17 @@ def get_paper_bibtex(
 }}"""
 
     return {"arxiv_id": arxiv_id, "bibtex": bibtex}
+
+
+@router.get("/check/{arxiv_id}")
+def check_paper_exists(
+    arxiv_id: str,
+    db: SessionDep,
+    _key: APIKeyDep = None,
+):
+    """
+    Check if a paper with the given arXiv ID has been fully ingested.
+    """
+    repo = PaperRepository(db)
+    paper = repo.get_by_arxiv_id(arxiv_id)
+    return {"exists": paper is not None, "title": paper.title if paper else None}

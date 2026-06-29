@@ -36,6 +36,7 @@ from src.routers import (
     annotations,
     sync,
     visual_search,
+    evaluation,
 )
 from src.routers.ask import ask_router, stream_router
 from src.routers.ws import ws_router
@@ -114,7 +115,21 @@ async def lifespan(app: FastAPI):
     app.state.ollama_client = make_ollama_client()
     app.state.langfuse_tracer = make_langfuse_tracer()
     app.state.api_key_service = await make_api_key_service(settings)
+    if app.state.api_key_service:
+        try:
+            await app.state.api_key_service.create_key(
+                raw_key="dev-test-key-999",
+                user_id="developer@local",
+                tier="premium",
+                rate_limit=99999,
+                daily_quota=999999,
+                tenants=["default", "research-tenant"]
+            )
+            logger.info("Seeded default dev-test-key-999 API Key in Redis")
+        except Exception as e:
+            logger.warning(f"Failed to seed dev-test-key-999: {e}")
     app.state.reranker_client = make_reranker_service()
+
 
     # Cache clients are now async - initialize with await
     try:
@@ -130,6 +145,10 @@ async def lifespan(app: FastAPI):
     # Initialize WebSearchService
     redis_client = getattr(app.state.cache_client, "redis", None) if app.state.cache_client else None
     app.state.web_search_service = WebSearchService(redis_client=redis_client)
+
+    # Initialize ConversationMemoryService
+    from src.services.conversation_memory import ConversationMemoryService
+    app.state.conversation_memory_service = ConversationMemoryService(settings, redis_client=redis_client)
 
     # Initialize cost tracker with Redis persistence
     cache_client = getattr(app.state, "cache_client", None)
@@ -284,6 +303,10 @@ app.include_router(collections.router, prefix="/api/v1")  # Collections API
 app.include_router(annotations.router, prefix="/api/v1")  # Annotations API
 app.include_router(sync.router, prefix="/api/v1")  # Obsidian & Notion Sync API
 app.include_router(visual_search.router, prefix="/api/v1")  # ColPali Visual Search API
+app.include_router(evaluation.router, prefix="/api/v1")  # RAGAS Evaluation Suite
+from src.routers import recommendations
+app.include_router(recommendations.router, prefix="/api/v1")  # Recommendations API
+
 
 # GraphQL endpoint
 from strawberry.fastapi import GraphQLRouter

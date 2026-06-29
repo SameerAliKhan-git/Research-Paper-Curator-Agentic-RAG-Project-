@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication — arXiv Paper Curator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/index.css">
+    <style>
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .background-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(234, 40, 4, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(234, 40, 4, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 10;
+            background: #0d0d0d;
+            border: 1px solid #1c1c1c;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 100px rgba(234, 40, 4, 0.03);
+        }
+
+        .auth-logo {
+            text-align: center;
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 26px;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+
+        .auth-logo .logo-bold {
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .auth-logo .logo-light {
+            font-weight: 400;
+            color: var(--color-primary);
+        }
+
+        .auth-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            background: #141414;
+            border: 1px solid #242424;
+            border-radius: 6px;
+            padding: 12px 14px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 8px rgba(234, 40, 4, 0.2);
+        }
+
+        .auth-btn {
+            background: var(--color-primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 14px;
+            width: 100%;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            margin-top: 10px;
+        }
+
+        .auth-btn:hover {
+            opacity: 0.9;
+        }
+
+        .auth-btn:active {
+            transform: scale(0.98);
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13.5px;
+            color: #888;
+        }
+
+        .auth-toggle span {
+            color: var(--color-primary);
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .status-msg {
+            font-size: 13px;
+            margin-top: 15px;
+            text-align: center;
+            min-height: 18px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background-grid"></div>
+
+    <div class="auth-container">
+        <div class="auth-logo">
+            <span class="logo-bold">arxiv</span><span class="logo-light">/paper-curator</span>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form-container">
+            <div class="auth-title">Log in to your workspace</div>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" required placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="auth-btn">Sign In</button>
+            </form>
+            <div class="auth-toggle">
+                Don't have an account? <span onclick="toggleAuth(true)">Register</span>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form-container" style="display: none;">
+            <div class="auth-title">Create your researcher account</div>
+            <form id="register-form" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="register-email">Email Address</label>
+                    <input type="email" id="register-email" required placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="auth-btn">Register</button>
+            </form>
+            <div class="auth-toggle">
+                Already have an account? <span onclick="toggleAuth(false)">Log in</span>
+            </div>
+        </div>
+
+        <div id="status-msg" class="status-msg"></div>
+    </div>
+
+    <script>
+        function toggleAuth(showRegister) {
+            const loginContainer = document.getElementById('login-form-container');
+            const registerContainer = document.getElementById('register-form-container');
+            const statusMsg = document.getElementById('status-msg');
+            
+            statusMsg.textContent = '';
+            
+            if (showRegister) {
+                loginContainer.style.display = 'none';
+                registerContainer.style.display = 'block';
+            } else {
+                loginContainer.style.display = 'block';
+                registerContainer.style.display = 'none';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const statusMsg = document.getElementById('status-msg');
+
+            statusMsg.textContent = 'Logging in...';
+            statusMsg.style.color = '#aaa';
+
+            try {
+                // OAuth2PasswordRequestForm expects urlencoded payload
+                const params = new URLSearchParams();
+                params.append('username', email);
+                params.append('password', password);
+
+                const response = await fetch('/api/v1/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: params
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Authentication failed');
+                }
+
+                const data = await response.json();
+                localStorage.setItem('rag_token', data.access_token);
+                statusMsg.textContent = '✓ Login successful! Redirecting...';
+                statusMsg.style.color = 'var(--color-badge-success)';
+                
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+
+            } catch (err) {
+                statusMsg.textContent = err.message;
+                statusMsg.style.color = 'var(--color-primary)';
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const statusMsg = document.getElementById('status-msg');
+
+            statusMsg.textContent = 'Registering account...';
+            statusMsg.style.color = '#aaa';
+
+            try {
+                const response = await fetch('/api/v1/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Registration failed');
+                }
+
+                statusMsg.textContent = '✓ Registered successfully! Please log in.';
+                statusMsg.style.color = 'var(--color-badge-success)';
+                
+                setTimeout(() => {
+                    toggleAuth(false);
+                    document.getElementById('login-email').value = email;
+                }, 1500);
+
+            } catch (err) {
+                statusMsg.textContent = err.message;
+                statusMsg.style.color = 'var(--color-primary)';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGAS Evaluation Dashboard — arXiv Paper Curator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-primary: #ea2804;
+            --color-primary-rgb: 234, 40, 4;
+            --color-bg: #000000;
+            --color-card: #090909;
+            --color-border: #1f1f1f;
+            --color-text: #e0e0e0;
+            --color-text-muted: #888888;
+            --font-main: 'Inter', sans-serif;
+            --font-title: 'Bricolage Grotesque', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: var(--font-main);
+            padding: 40px 24px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 24px;
+        }
+
+        h1 {
+            font-family: var(--font-title);
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            border-color: #444;
+            background: #111;
+        }
+
+        .run-btn {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .run-btn:hover {
+            opacity: 0.9;
+        }
+
+        .run-btn:disabled {
+            background: #222;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .card h2 {
+            font-family: var(--font-title);
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .metric-tile {
+            background: #0d0d0d;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* History list styles */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #0d0d0d;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            border-color: #444;
+            background: #121212;
+        }
+
+        .history-item.active {
+            border-color: var(--color-primary);
+            background: rgba(234, 40, 4, 0.04);
+        }
+
+        /* Details list styles */
+        .details-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .details-item {
+            border: 1px solid var(--color-border);
+            background: #0d0d0d;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .details-q {
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .details-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-family: var(--font-code);
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .badge.pass {
+            background: rgba(43, 154, 102, 0.15);
+            color: #2b9a66;
+            border: 1px solid rgba(43, 154, 102, 0.3);
+        }
+
+        .badge.fail {
+            background: rgba(234, 40, 4, 0.15);
+            color: var(--color-primary);
+            border: 1px solid rgba(234, 40, 4, 0.3);
+        }
+
+        .spinner {
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- RAG token authorization verification -->
+    <script>
+        if (!localStorage.getItem('rag_token')) {
+            window.location.href = '/static/auth.html';
+        }
+    </script>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>RAGAS Quality & Performance Evaluation</h1>
+                <p style="color: var(--color-text-muted); font-size: 14px; margin-top: 4px;">Automated golden dataset evaluation with dynamic heuristics and LLM-as-a-Judge grading</p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="/" class="back-btn">← Back to Panel</a>
+                <button id="run-eval-btn" class="run-btn" onclick="triggerEvaluation()">
+                    <span>Run Evaluation Suite</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Left Side: Active Run Overview -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                <div class="card">
+                    <h2>Active Run Performance Overview</h2>
+                    <div class="metrics-row">
+                        <div class="metric-tile">
+                            <div class="metric-label">Faithfulness</div>
+                            <div class="metric-value" id="val-faithfulness">--</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-label">Answer Relevancy</div>
+                            <div class="metric-value" id="val-relevancy">--</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-label">Context Precision</div>
+                            <div class="metric-value" id="val-precision">--</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-label">Context Recall</div>
+                            <div class="metric-value" id="val-recall">--</div>
+                        </div>
+                    </div>
+
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="runChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Detailed Case Log</h2>
+                    <div class="details-list" id="case-log-container">
+                        <div style="text-align: center; padding: 40px 0; color: var(--color-text-muted);">
+                            Select or run an evaluation to view detailed case execution logs.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Run History -->
+            <div class="card" style="align-self: flex-start;">
+                <h2>Run History</h2>
+                <div class="history-list" id="history-container">
+                    <div style="text-align: center; padding: 20px; color: var(--color-text-muted);">No runs executed yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let runChartInstance = null;
+        let historyData = [];
+
+        function apiFetch(url, options = {}) {
+            const token = localStorage.getItem('rag_token');
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            return fetch(url, { ...options, headers });
+        }
+
+        function formatDate(isoStr) {
+            const date = new Date(isoStr);
+            return date.toLocaleString();
+        }
+
+        function loadHistory() {
+            apiFetch('/api/v1/evaluation/history')
+                .then(res => res.json())
+                .then(data => {
+                    historyData = data || [];
+                    renderHistory();
+                    if (historyData.length > 0) {
+                        selectRun(historyData.length - 1);
+                    }
+                })
+                .catch(err => console.error("Error loading evaluation history:", err));
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            if (historyData.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--color-text-muted);">No runs executed yet</div>`;
+                return;
+            }
+            container.innerHTML = historyData.map((run, index) => {
+                const totalScore = ((run.faithfulness + run.answer_relevancy + run.context_precision + run.context_recall) / 4 * 100).toFixed(0);
+                return `
+                    <div class="history-item" id="run-item-${index}" onclick="selectRun(${index})">
+                        <div>
+                            <div style="font-weight: 600; color: white; font-size: 13px;">${formatDate(run.timestamp)}</div>
+                            <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 2px;">
+                                ${run.num_samples} samples | ${run.was_fallback ? 'Heuristic' : 'RAGAS LLM'}
+                            </div>
+                        </div>
+                        <div style="font-size: 16px; font-weight: bold; color: ${totalScore >= 70 ? '#2b9a66' : '#ea2804'}">${totalScore}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectRun(index) {
+            // Highlight list item
+            document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`run-item-${index}`);
+            if (activeEl) activeEl.classList.add('active');
+
+            const run = historyData[index];
+            if (!run) return;
+
+            // Render stats
+            document.getElementById('val-faithfulness').textContent = run.faithfulness.toFixed(2);
+            document.getElementById('val-relevancy').textContent = run.answer_relevancy.toFixed(2);
+            document.getElementById('val-precision').textContent = run.context_precision.toFixed(2);
+            document.getElementById('val-recall').textContent = run.context_recall.toFixed(2);
+
+            // Update Chart
+            updateChart(run);
+
+            // Render Details
+            const caseContainer = document.getElementById('case-log-container');
+            if (!run.details || run.details.length === 0) {
+                caseContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--color-text-muted);">No details available</div>`;
+                return;
+            }
+
+            caseContainer.innerHTML = run.details.map(item => {
+                const passed = item.passed;
+                return `
+                    <div class="details-item">
+                        <div class="details-q">${item.question}</div>
+                        <div class="details-meta">
+                            <span class="badge ${passed ? 'pass' : 'fail'}">${passed ? 'PASSED' : 'FAILED'}</span>
+                            <span style="font-size: 12px; color: var(--color-text-muted);">
+                                F: ${item.scores.faithfulness.toFixed(2)} | 
+                                R: ${item.scores.answer_relevancy.toFixed(2)} | 
+                                P: ${item.scores.context_precision.toFixed(2)} | 
+                                C: ${item.scores.context_recall.toFixed(2)}
+                            </span>
+                        </div>
+                        <div style="font-size: 13.5px; line-height: 1.6; background: #070707; border: 1px solid #1a1a1a; padding: 12px; border-radius: 6px; color: #ccc;">
+                            <strong style="color: white; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px;">Pipeline Response:</strong>
+                            ${item.answer}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateChart(run) {
+            const ctx = document.getElementById('runChart').getContext('2d');
+            const data = [run.faithfulness, run.answer_relevancy, run.context_precision, run.context_recall];
+
+            if (runChartInstance) {
+                runChartInstance.data.datasets[0].data = data;
+                runChartInstance.update();
+            } else {
+                runChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Faithfulness', 'Answer Relevancy', 'Context Precision', 'Context Recall'],
+                        datasets: [{
+                            label: 'Score',
+                            data: data,
+                            backgroundColor: 'rgba(234, 40, 4, 0.6)',
+                            borderColor: '#ea2804',
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: 1.0,
+                                grid: { color: '#1a1a1a' },
+                                ticks: { color: '#888' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#888' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function triggerEvaluation() {
+            const button = document.getElementById('run-eval-btn');
+            button.disabled = true;
+            button.innerHTML = `<span class="spinner"></span> <span>Running Evaluation...</span>`;
+
+            apiFetch('/api/v1/evaluation/run', { method: 'POST' })
+                .then(res => {
+                    if (!res.ok) throw new Error('Run failed');
+                    return res.json();
+                })
+                .then(data => {
+                    button.disabled = false;
+                    button.innerHTML = `<span>Run Evaluation Suite</span>`;
+                    loadHistory();
+                })
+                .catch(err => {
+                    alert('Evaluation failed to run: ' + err.message);
+                    button.disabled = false;
+                    button.innerHTML = `<span>Run Evaluation Suite</span>`;
+                });
+        }
+
+        // Initial Load
+        loadHistory();
+    </script>
+</body>
+</html>
