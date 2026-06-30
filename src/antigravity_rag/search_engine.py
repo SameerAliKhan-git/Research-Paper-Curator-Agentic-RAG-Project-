@@ -50,7 +50,7 @@ def hybrid_search(query: str) -> List[Dict[str, Any]]:
     # Construct placeholders
     placeholders = ",".join("?" for _ in candidate_ids)
     query_str = f"""
-    SELECT c.chunk_id, c.chunk_text, c.paper_id, c.chunk_index, c.start_char, c.end_char, c.section_title,
+    SELECT c.chunk_id, c.chunk_text, c.paper_id, c.chunk_index, c.start_char, c.end_char, c.section_title, c.page_number,
            p.title as paper_title, p.authors, p.year, p.url, p.full_text_path
     FROM chunks c
     JOIN papers p ON c.paper_id = p.paper_id

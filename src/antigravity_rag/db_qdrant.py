@@ -4,13 +4,17 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from src.antigravity_rag.config_parser import get_config
 
+_qdrant_client = None
+
 def get_qdrant_client() -> QdrantClient:
-    config = get_config()
-    qdrant_path = config.storage.get("qdrant_path", "./qdrant_storage")
-    
-    # Use path-based persistent storage for local-only lightweight execution
-    client = QdrantClient(path=qdrant_path)
-    return client
+    global _qdrant_client
+    if _qdrant_client is None:
+        config = get_config()
+        qdrant_path = config.storage.get("qdrant_path", "./qdrant_storage")
+        
+        # Use path-based persistent storage for local-only lightweight execution
+        _qdrant_client = QdrantClient(path=qdrant_path)
+    return _qdrant_client
 
 def init_qdrant():
     client = get_qdrant_client()
@@ -75,15 +79,15 @@ def search_vectors(query_vector: List[float], top_k: int = 20) -> List[Dict[str,
     client = get_qdrant_client()
     collection_name = "research_papers"
     
-    # Search collection
-    search_results = client.search(
+    # Query collection using the modern query_points API
+    response = client.query_points(
         collection_name=collection_name,
-        query_vector=query_vector,
+        query=query_vector,
         limit=top_k
     )
     
     results = []
-    for hit in search_results:
+    for hit in response.points:
         results.append({
             "chunk_id": hit.payload.get("chunk_id"),
             "paper_id": hit.payload.get("paper_id"),

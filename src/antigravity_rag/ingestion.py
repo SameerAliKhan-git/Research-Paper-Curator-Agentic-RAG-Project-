@@ -7,13 +7,41 @@ import urllib.request
 from datetime import datetime, timedelta
 import concurrent.futures
 import difflib
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from src.antigravity_rag.config_parser import get_config
 from src.antigravity_rag.db_sqlite import insert_paper, insert_chunks, update_paper_indexed_status, paper_exists, doi_exists
 from src.antigravity_rag.db_qdrant import upsert_chunks
 from src.antigravity_rag.local_embeddings import embed_text
+import sys
+
+def safe_print(*args, **kwargs):
+    sep = kwargs.get('sep', ' ')
+    end = kwargs.get('end', '\n')
+    file = kwargs.get('file', sys.stdout)
+    
+    msg = sep.join(str(arg) for arg in args)
+    try:
+        file.write(msg + end)
+        file.flush()
+    except UnicodeEncodeError:
+        try:
+            encoding = getattr(file, 'encoding', None) or 'utf-8'
+            safe_msg = msg.encode(encoding, errors='replace').decode(encoding)
+            file.write(safe_msg + end)
+            file.flush()
+        except Exception:
+            try:
+                ascii_msg = msg.encode('ascii', errors='ignore').decode('ascii')
+                file.write(ascii_msg + end)
+                file.flush()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+print = safe_print
 
 # Safe Scholarly imports
 try:
@@ -29,6 +57,15 @@ try:
 except ImportError:
     ARXIV_AVAILABLE = False
 
+def refine_query(query: str) -> str:
+    clean = query.lower()
+    for prefix in ["what is a ", "what is ", "what are ", "how does ", "explain ", "tell me about ", "show me "]:
+        clean = clean.replace(prefix, "")
+    clean = re.sub(r'[\?\.!]', '', clean).strip()
+    if "vector db" in clean:
+        clean = clean.replace("vector db", "vector database")
+    return clean
+
 def search_arxiv(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
     results = []
     if not ARXIV_AVAILABLE:
@@ -36,9 +73,13 @@ def search_arxiv(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         return results
         
     try:
+        refined = refine_query(query)
+        # Restrict to CS domains to prevent dark matter/physics search contamination
+        arxiv_query = f'("{refined}" OR "{refined.replace("database", "db")}") AND (cat:cs.AI OR cat:cs.LG OR cat:cs.DB OR cat:cs.IR OR cat:cs.CL)'
+        
         client = arxiv.Client()
         search = arxiv.Search(
-            query=query,
+            query=arxiv_query,
             max_results=max_results,
             sort_by=arxiv.SortCriterion.Relevance
         )
@@ -67,8 +108,9 @@ def search_arxiv(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
 def search_semantic_scholar(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
     results = []
     url = "https://api.semanticscholar.org/graph/v1/paper/search"
+    refined = refine_query(query)
     params = {
-        "query": query,
+        "query": f'"{refined}" database',
         "limit": max_results,
         "fields": "title,authors,year,url,externalIds,abstract,openAccessPdf"
     }
@@ -146,15 +188,26 @@ def search_all_sources(query: str, limit: int = 5) -> List[Dict[str, Any]]:
     config = get_config()
     sources_cfg = config.sources
     
+    clean_q = query.lower()
+    # Simple classifier: check if queries relate to patent/author profiles (Google Scholar domain)
+    # vs. scientific computer science papers (ArXiv / Semantic Scholar domain)
+    query_domain = "science"
+    if any(keyword in clean_q for keyword in ["patent", "author:", "profile", "citations of", "h-index"]):
+        query_domain = "scholar"
+        
     tasks = []
-    # Using thread pool to run parallel queries
+    # Using thread pool to run parallel queries dynamically
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        if sources_cfg.get("arxiv", {}).get("enabled", True):
-            tasks.append(executor.submit(search_arxiv, query, limit))
-        if sources_cfg.get("semantic_scholar", {}).get("enabled", True):
-            tasks.append(executor.submit(search_semantic_scholar, query, limit))
-        if sources_cfg.get("google_scholar", {}).get("enabled", False):
-            tasks.append(executor.submit(search_google_scholar, query, 2))
+        if query_domain == "scholar":
+            print(f"Ingestion classifier: Routing query '{query}' to Google Scholar")
+            if sources_cfg.get("google_scholar", {}).get("enabled", True):
+                tasks.append(executor.submit(search_google_scholar, query, 3))
+        else:
+            print(f"Ingestion classifier: Routing query '{query}' to ArXiv and Semantic Scholar")
+            if sources_cfg.get("arxiv", {}).get("enabled", True):
+                tasks.append(executor.submit(search_arxiv, query, limit))
+            if sources_cfg.get("semantic_scholar", {}).get("enabled", True):
+                tasks.append(executor.submit(search_semantic_scholar, query, limit))
             
         concurrent.futures.wait(tasks)
         
@@ -165,7 +218,6 @@ def search_all_sources(query: str, limit: int = 5) -> List[Dict[str, Any]]:
     # Deduplicate results by title similarity
     deduplicated = []
     for paper in all_results:
-        # Check if already in deduplicated
         is_dup = False
         for existing in deduplicated:
             ratio = difflib.SequenceMatcher(None, paper["title"].lower(), existing["title"].lower()).ratio()
@@ -175,31 +227,16 @@ def search_all_sources(query: str, limit: int = 5) -> List[Dict[str, Any]]:
         if not is_dup:
             deduplicated.append(paper)
             
-    # Sort and return top 5
     return deduplicated[:5]
 
-def fetch_pdf(paper: Dict[str, Any]) -> Optional[str]:
-    """Downloads PDF to local papers_store if pdf_url is present."""
+def fetch_pdf(paper: Dict[str, Any]) -> Optional[bytes]:
+    """Downloads PDF to memory bytes if pdf_url is present."""
     pdf_url = paper.get("pdf_url")
     if not pdf_url:
         return None
         
-    config = get_config()
-    store_dir = config.storage.get("papers_store", "./papers_store")
-    
-    source_dir = os.path.join(store_dir, paper["source"])
-    os.makedirs(source_dir, exist_ok=True)
-    
-    # Sanitize paper_id for filename
-    safe_id = re.sub(r'[^a-zA-Z0-9_\-]', '_', paper["paper_id"])
-    file_path = os.path.join(source_dir, f"{safe_id}.pdf")
-    
-    # Don't re-download if it already exists
-    if os.path.exists(file_path):
-        return file_path
-        
     try:
-        print(f"Downloading PDF: {pdf_url} -> {file_path}")
+        print(f"Downloading PDF: {pdf_url}")
         # Standard requests get with 5s timeout
         # Add headers to act as a browser
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -207,9 +244,7 @@ def fetch_pdf(paper: Dict[str, Any]) -> Optional[str]:
         with httpx.Client(follow_redirects=True) as client:
             resp = client.get(pdf_url, headers=headers, timeout=5.0)
             if resp.status_code == 200:
-                with open(file_path, "wb") as f:
-                    f.write(resp.content)
-                return file_path
+                return resp.content
             else:
                 print(f"Failed to download PDF. Status code: {resp.status_code}")
     except Exception as e:
@@ -217,26 +252,25 @@ def fetch_pdf(paper: Dict[str, Any]) -> Optional[str]:
         
     return None
 
-def extract_text_from_pdf(pdf_path: str) -> str:
-    """Extract and clean text from PDF using PyMuPDF."""
+def extract_text_from_pdf(pdf_bytes: bytes) -> List[Tuple[int, str]]:
+    """Extract and clean text page-by-page from PDF bytes using PyMuPDF."""
+    pages_text = []
     try:
-        doc = fitz.open(pdf_path)
-        text_pages = []
-        for page in doc:
-            text_pages.append(page.get_text())
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            text = page.get_text()
             
-        full_text = "\n".join(text_pages)
-        
-        # Clean text
-        # Remove headers/footers (simple numeric footers, etc.)
-        cleaned = re.sub(r'\n\d+\s*\n', '\n', full_text)
-        # Normalize spaces
-        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-        
-        return cleaned
+            # Clean text
+            # Remove headers/footers (simple numeric footers, etc.)
+            cleaned = re.sub(r'\n\d+\s*\n', '\n', text)
+            # Normalize spaces
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            
+            pages_text.append((page_num + 1, cleaned))
     except Exception as e:
         print(f"Error extracting PDF text: {e}")
-        return ""
+    return pages_text
 
 def process_and_index_paper(paper: Dict[str, Any]) -> bool:
     """Ingests paper metadata, chunks full text (or abstract), embeds, and indexes it."""
@@ -246,10 +280,9 @@ def process_and_index_paper(paper: Dict[str, Any]) -> bool:
         return True
         
     # 1. Fetch PDF
-    pdf_path = fetch_pdf(paper)
-    paper["full_text_path"] = pdf_path
+    pdf_bytes = fetch_pdf(paper)
     
-    # 2. Save paper metadata in SQLite
+    # 2. Save paper metadata in SQLite with PDF BLOB
     inserted = insert_paper(
         paper_id=paper["paper_id"],
         title=paper["title"],
@@ -259,21 +292,14 @@ def process_and_index_paper(paper: Dict[str, Any]) -> bool:
         url=paper["url"],
         doi=paper.get("doi"),
         abstract=paper["abstract"],
-        full_text_path=pdf_path
+        full_text_path=None,
+        pdf_blob=pdf_bytes
     )
     
-    # 3. Extract full text or fallback to abstract
-    text_to_index = ""
-    if pdf_path:
-        text_to_index = extract_text_from_pdf(pdf_path)
-        
-    if not text_to_index:
-        print(f"Using abstract as index text for {paper['title']}")
-        text_to_index = paper["abstract"]
-        
-    if not text_to_index:
-        print(f"No text content found to index for {paper['title']}. Skipping chunking.")
-        return False
+    # 3. Extract text page-by-page
+    pages = []
+    if pdf_bytes:
+        pages = extract_text_from_pdf(pdf_bytes)
         
     # 4. Chunk text
     config = get_config()
@@ -285,41 +311,67 @@ def process_and_index_paper(paper: Dict[str, Any]) -> bool:
         chunk_overlap=chunk_overlap
     )
     
-    raw_chunks = splitter.split_text(text_to_index)
-    
     chunks_to_insert = []
-    current_pos = 0
     
-    for idx, chunk_text in enumerate(raw_chunks):
-        chunk_id = f"{paper['paper_id']}_{idx}"
-        
-        # Calculate character offsets
-        start_char = text_to_index.find(chunk_text, current_pos)
-        if start_char == -1:
-            start_char = text_to_index.find(chunk_text)
-            
-        if start_char != -1:
-            end_char = start_char + len(chunk_text)
-            current_pos = end_char
-        else:
-            start_char = 0
-            end_char = len(chunk_text)
-            
-        # Count words as token approximation
-        token_count = len(chunk_text.split())
-        
-        chunks_to_insert.append({
-            "chunk_id": chunk_id,
-            "paper_id": paper["paper_id"],
-            "chunk_index": idx,
-            "chunk_text": chunk_text,
-            "start_char": start_char,
-            "end_char": end_char,
-            "section_title": None,
-            "token_count": token_count
-        })
-        
+    if pages:
+        global_chunk_idx = 0
+        for page_number, page_text in pages:
+            if not page_text:
+                continue
+            page_chunks = splitter.split_text(page_text)
+            current_pos = 0
+            for chunk_text in page_chunks:
+                chunk_id = f"{paper['paper_id']}_{global_chunk_idx}"
+                
+                # Calculate character offsets
+                start_char = page_text.find(chunk_text, current_pos)
+                if start_char == -1:
+                    start_char = page_text.find(chunk_text)
+                    
+                if start_char != -1:
+                    end_char = start_char + len(chunk_text)
+                    current_pos = end_char
+                else:
+                    start_char = 0
+                    end_char = len(chunk_text)
+                    
+                # Count words as token approximation
+                token_count = len(chunk_text.split())
+                
+                chunks_to_insert.append({
+                    "chunk_id": chunk_id,
+                    "paper_id": paper["paper_id"],
+                    "chunk_index": global_chunk_idx,
+                    "chunk_text": chunk_text,
+                    "start_char": start_char,
+                    "end_char": end_char,
+                    "section_title": f"Page {page_number}",
+                    "token_count": token_count,
+                    "page_number": page_number
+                })
+                global_chunk_idx += 1
+    else:
+        # Fallback to abstract (Page 1)
+        abstract_text = paper.get("abstract", "")
+        if abstract_text:
+            raw_chunks = splitter.split_text(abstract_text)
+            for idx, chunk_text in enumerate(raw_chunks):
+                chunk_id = f"{paper['paper_id']}_{idx}"
+                token_count = len(chunk_text.split())
+                chunks_to_insert.append({
+                    "chunk_id": chunk_id,
+                    "paper_id": paper["paper_id"],
+                    "chunk_index": idx,
+                    "chunk_text": chunk_text,
+                    "start_char": 0,
+                    "end_char": len(chunk_text),
+                    "section_title": "Abstract",
+                    "token_count": token_count,
+                    "page_number": 1
+                })
+                
     if not chunks_to_insert:
+        print(f"No text content found to index for {paper['title']}. Skipping.")
         return False
         
     # 5. Embed chunks
